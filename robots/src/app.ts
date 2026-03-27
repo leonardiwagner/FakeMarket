@@ -1,9 +1,8 @@
-import { User,getUsers} from './db'
+import { generateOrders } from './orderGenerator';
 
 
 
 
 console.log("IAII")
 
-getUsers().then((users: User[]) => console.log("users", users))
-
+generateOrders();
