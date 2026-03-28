@@ -1,16 +1,16 @@
 import { desc, eq, sql, asc, and } from 'drizzle-orm';
 import { orders } from '../../drizzle/schema';
 import { db, type DbTransaction } from '../db';
-import * as DbTypes from '../dbTypes';
+import * as Models from '../models/Models';
 
 export async function insertOrder(
     tx: DbTransaction,
     userId: string,
     resourceId: string,
-    type: DbTypes.OrderType,
+    type: Models.OrderType,
     price: number,
     quantity: number,
-): Promise<DbTypes.Order> {
+): Promise<Models.Order> {
     const [order] = await tx
         .insert(orders)
         .values({
@@ -19,7 +19,7 @@ export async function insertOrder(
             type,
             price,
             quantity,
-            status: DbTypes.OrderStatus.OPEN,
+            status: Models.OrderStatus.OPEN,
         })
         .returning();
 
@@ -37,12 +37,12 @@ export async function getOrders(
     }: {
         resourceId?: string;
         userId?: string;
-        orderType?: DbTypes.OrderType;
-        orderStatus?: DbTypes.OrderStatus;
+        orderType?: Models.OrderType;
+        orderStatus?: Models.OrderStatus;
         quantity?: number;
         sortDirection?: 'asc' | 'desc';
     } = {},
-): Promise<DbTypes.Order[]> {
+): Promise<Models.Order[]> {
     return await db
         .select()
         .from(orders)
@@ -60,8 +60,8 @@ export async function getOrders(
 
 export async function getPrices(
     resourceId: string,
-    orderType: DbTypes.OrderType,
-    orderStatus: DbTypes.OrderStatus,
+    orderType: Models.OrderType,
+    orderStatus: Models.OrderStatus,
     quantity: number = 5,
     sortDirection: 'asc' | 'desc' = 'asc',
 ): Promise<{ amount: number, price: number }[]> {

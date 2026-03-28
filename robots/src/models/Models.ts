@@ -1,4 +1,6 @@
-import { users, orders, resources, holdings } from '../drizzle/schema';
+import { users, orders, resources, holdings } from '../../drizzle/schema';
+export { InsufficientResourcesError } from './Errors';
+export { InsufficientMoneyError } from './Errors';
 
 export type User = typeof users.$inferSelect;
 export type Order = typeof orders.$inferSelect;

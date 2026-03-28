@@ -1,9 +1,9 @@
 import { and, eq, gte, sql } from 'drizzle-orm';
 import { holdings } from '../../drizzle/schema';
 import { db, type DbTransaction } from '../db';
-import * as DbTypes from '../dbTypes';
+import * as Models from '../models/Models';
 
-export async function getUserHoldings(userId: string, resourceId?: string): Promise<DbTypes.Holding[]> {
+export async function getUserHoldings(userId: string, resourceId?: string): Promise<Models.Holding[]> {
     return await db
         .select()
         .from(holdings)
@@ -22,7 +22,7 @@ export async function getUserMoney(userId: string): Promise<number> {
         .where(
             and(
                 eq(holdings.userId, userId),
-                eq(holdings.resourceId, DbTypes.RESOURCE_ID_USD),
+                eq(holdings.resourceId, Models.RESOURCE_ID_USD),
             ),
         );
 
@@ -34,7 +34,7 @@ export async function updateHoldingQuantity(
     userId: string,
     resourceId: string,
     quantity: number,
-): Promise<DbTypes.Holding> {
+): Promise<Models.Holding> {
     const [holding] = await dbTransaction
         .update(holdings)
         .set({
@@ -56,8 +56,8 @@ export async function updateUserMoney(
     dbTransaction: DbTransaction,
     userId: string,
     amount: number,
-): Promise<DbTypes.Holding> {
-    return await updateHoldingQuantity(dbTransaction, userId, DbTypes.RESOURCE_ID_USD, amount);
+): Promise<Models.Holding> {
+    return await updateHoldingQuantity(dbTransaction, userId, Models.RESOURCE_ID_USD, amount);
 }
 
 export async function removeHoldingQuantity(
@@ -65,7 +65,7 @@ export async function removeHoldingQuantity(
     userId: string,
     resourceId: string,
     quantity: number,
-): Promise<DbTypes.Holding | undefined> {
+): Promise<Models.Holding | undefined> {
     const [holding] = await dbTransaction
         .update(holdings)
         .set({
