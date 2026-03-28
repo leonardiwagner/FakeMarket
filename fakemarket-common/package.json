@@ -15,10 +15,16 @@
     "./constants": "./dist/constants.js",
     "./repositories/holdingsRepository": "./dist/repositories/holdingsRepository.js",
     "./repositories/orderRepository": "./dist/repositories/orderRepository.js",
+    "./repositories/tradeRepository": "./dist/repositories/tradeRepository.js",
     "./repositories/userRepository": "./dist/repositories/userRepository.js",
-    "./services/orderService": "./dist/services/orderService.js"
+    "./services/orderCreationService": "./dist/services/orderCreationService.js",
+    "./services/orderExecutionService": "./dist/services/orderExecutionService.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.1",
+    "pg": "^8.20.0"
   }
 }
