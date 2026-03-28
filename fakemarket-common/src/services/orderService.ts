@@ -1,14 +1,15 @@
-import { db } from '../db';
-import * as Models from '../models/Models';
-import { insertOrder } from '../repositories/orderRepository';
+import { db, type DbTransaction } from '../db/client';
+import { InsufficientMoneyError, InsufficientResourcesError } from '../errors';
+import * as Models from '../models';
 import { removeHoldingQuantity } from '../repositories/holdingsRepository';
+import { insertOrder } from '../repositories/orderRepository';
 
 export async function createSellOrder(userId: string, resourceId: string, quantity: number, price: number): Promise<Models.Order> {
-    return await db.transaction(async (dbTransaction) => {
+    return await db.transaction(async (dbTransaction: DbTransaction) => {
         const holding = await removeHoldingQuantity(dbTransaction, userId, resourceId, quantity);
 
         if (!holding) {
-            throw new Models.InsufficientResourcesError();
+            throw new InsufficientResourcesError();
         }
 
         return await insertOrder(
@@ -23,7 +24,7 @@ export async function createSellOrder(userId: string, resourceId: string, quanti
 }
 
 export async function createBuyOrder(userId: string, resourceId: string, quantity: number, price: number): Promise<Models.Order> {
-    return await db.transaction(async (dbTransaction) => {
+    return await db.transaction(async (dbTransaction: DbTransaction) => {
         const money = await removeHoldingQuantity(
             dbTransaction,
             userId,
@@ -32,7 +33,7 @@ export async function createBuyOrder(userId: string, resourceId: string, quantit
         );
 
         if (!money) {
-            throw new Models.InsufficientMoneyError();
+            throw new InsufficientMoneyError();
         }
 
         return await insertOrder(

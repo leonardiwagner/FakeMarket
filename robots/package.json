@@ -2,11 +2,11 @@
   "name": "robots",
   "version": "1.0.0",
   "description": "",
-  "main": "app.js",
+  "main": "dist/robots/src/app.js",
   "scripts": {
     "dev": "ts-node-dev --respawn src/app.ts",
     "build": "tsc",
-    "start": "node dist/app.js"
+    "start": "node dist/robots/src/app.js"
   },
   "keywords": [],
   "author": "",
@@ -21,6 +21,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "fakemarket-common": "file:../fakemarket-common",
     "drizzle-orm": "^0.45.1",
     "express": "^5.2.1",
     "pg": "^8.20.0"

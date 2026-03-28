@@ -1,4 +1,4 @@
-import * as Models from '../models/Models';
+import * as Models from 'fakemarket-common';
 
 
 type MarketSnapshot = {

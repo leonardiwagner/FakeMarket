@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm/relations";
-import { users, orders, resources, trades, holdings } from "./schema";
+import { users, orders, resources, trades, holdings } from "fakemarket-common/db/schema";
 
 export const ordersRelations = relations(orders, ({one, many}) => ({
 	user: one(users, {

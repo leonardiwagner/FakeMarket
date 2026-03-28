@@ -1,7 +1,7 @@
-import { desc, eq, sql, asc, and } from 'drizzle-orm';
-import { orders } from '../../drizzle/schema';
-import { db, type DbTransaction } from '../db';
-import * as Models from '../models/Models';
+import { and, asc, desc, eq, sql } from 'drizzle-orm';
+import { db, type DbTransaction } from '../db/client';
+import { orders } from '../db/schema';
+import * as Models from '../models';
 
 export async function insertOrder(
     tx: DbTransaction,
@@ -24,6 +24,11 @@ export async function insertOrder(
         .returning();
 
     return order;
+}
+
+export async function addOrder(order: Models.Order): Promise<Models.Order> {
+    const [addedOrder] = await db.insert(orders).values(order).returning();
+    return addedOrder;
 }
 
 export async function getOrders(
@@ -58,6 +63,23 @@ export async function getOrders(
         .limit(quantity);
 }
 
+export async function getOrdersByResourceIdTypeAndStatus(
+    resourceId: string,
+    type: Models.OrderType,
+    status: Models.OrderStatus,
+): Promise<Models.Order[]> {
+    return await db
+        .select()
+        .from(orders)
+        .where(
+            and(
+                eq(orders.resourceId, resourceId),
+                eq(orders.type, type),
+                eq(orders.status, status),
+            ),
+        );
+}
+
 export async function getPrices(
     resourceId: string,
     orderType: Models.OrderType,
@@ -73,9 +95,9 @@ export async function getPrices(
         .from(orders)
         .where(
             and(
-            eq(orders.resourceId, resourceId),
-            eq(orders.type, orderType),
-            eq(orders.status, orderStatus)
+                eq(orders.resourceId, resourceId),
+                eq(orders.type, orderType),
+                eq(orders.status, orderStatus),
             ),
         )
         .groupBy(orders.price)

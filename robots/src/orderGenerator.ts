@@ -1,9 +1,15 @@
-import { getUsersByType, getResourcesByUserId } from './db'
+import {
+    createBuyOrder,
+    createSellOrder,
+    getOrders,
+    getPrices,
+    getResourcesByUserId,
+    getUserHoldings,
+    getUserMoney,
+    getUsersByType,
+} from 'fakemarket-common';
 import { getRobotOrderDecision } from './domain/orderDecision';
-import { getOrders, getPrices } from './repositories/orderRepository';
-import { getUserHoldings, getUserMoney } from './repositories/holdingsRepository';
-import * as Models from './models/Models';
-import * as OrderService from './services/orderService';
+import * as Models from 'fakemarket-common';
 import { log } from 'node:console';
 
 async function getUserHoldingsForResource(userId: string, resourceId: string): Promise<number> {
@@ -38,7 +44,7 @@ async function generateOrdersFromUserHoldings(robotUser: Models.User, holdings: 
                 }
 
                 try {
-                    await OrderService.createBuyOrder(robotUser.id, holding.resourceId, decision.quantity, decision.price);
+                    await createBuyOrder(robotUser.id, holding.resourceId, decision.quantity, decision.price);
                 } catch (error: any) {
                     log(`Failed to create buy order for user ${robotUser.id} on resource ${holding.resourceId}: ${error.message}`);
                     if (!(error instanceof Models.InsufficientMoneyError)) {
@@ -54,7 +60,7 @@ async function generateOrdersFromUserHoldings(robotUser: Models.User, holdings: 
                 }
 
                 try {
-                    await OrderService.createSellOrder(robotUser.id, holding.resourceId, decision.quantity, decision.price);
+                    await createSellOrder(robotUser.id, holding.resourceId, decision.quantity, decision.price);
                 } catch (error: any) {
                     log(`Failed to create sell order for user ${robotUser.id} on resource ${holding.resourceId}: ${error.message}`);
                     if (!(error instanceof Models.InsufficientResourcesError)) {

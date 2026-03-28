@@ -1,0 +1,24 @@
+{
+  "name": "fakemarket-common",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Internal shared library for FakeMarket domain, database, repositories, and services.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./public": "./dist/public.js",
+    "./db/client": "./dist/db/client.js",
+    "./db/schema": "./dist/db/schema.js",
+    "./errors": "./dist/errors.js",
+    "./models": "./dist/models.js",
+    "./constants": "./dist/constants.js",
+    "./repositories/holdingsRepository": "./dist/repositories/holdingsRepository.js",
+    "./repositories/orderRepository": "./dist/repositories/orderRepository.js",
+    "./repositories/userRepository": "./dist/repositories/userRepository.js",
+    "./services/orderService": "./dist/services/orderService.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  }
+}

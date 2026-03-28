@@ -1,7 +1,7 @@
 import { and, eq, gte, sql } from 'drizzle-orm';
-import { holdings } from '../../drizzle/schema';
-import { db, type DbTransaction } from '../db';
-import * as Models from '../models/Models';
+import { db, type DbTransaction } from '../db/client';
+import { holdings } from '../db/schema';
+import * as Models from '../models';
 
 export async function getUserHoldings(userId: string, resourceId?: string): Promise<Models.Holding[]> {
     return await db
@@ -13,6 +13,13 @@ export async function getUserHoldings(userId: string, resourceId?: string): Prom
                 resourceId ? eq(holdings.resourceId, resourceId) : undefined,
             ),
         );
+}
+
+export async function getResourcesByUserId(userId: string): Promise<Models.Holding[]> {
+    return await db
+        .select()
+        .from(holdings)
+        .where(eq(holdings.userId, userId));
 }
 
 export async function getUserMoney(userId: string): Promise<number> {

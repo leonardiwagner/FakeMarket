@@ -6,6 +6,9 @@
   "scripts": {
     "start": "node app.js"
   },
+  "dependencies": {
+    "fakemarket-common": "file:../fakemarket-common"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC"
