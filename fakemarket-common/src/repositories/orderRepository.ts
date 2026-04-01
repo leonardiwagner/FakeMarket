@@ -4,9 +4,9 @@ import { orders } from '../db/schema';
 import * as Constants from '../models/constants';
 import * as Errors from '../models/errors';
 import type * as Models from '../models/models';
-import { HoldingsRepository } from './holdingsRepository';
+import * as HoldingsRepository from './holdingsRepository';
 
-async function add(
+export async function add(
     tx: DbTransaction,
     userId: string,
     resourceId: string,
@@ -29,7 +29,7 @@ async function add(
     return order;
 }
 
-async function get(
+export async function get(
     {
         resourceId,
         userId,
@@ -61,7 +61,7 @@ async function get(
         .limit(quantity);
 }
 
-async function getLatest(
+export async function getLatest(
     resourceId: string,
     orderType: Constants.OrderType,
     orderStatus: Constants.OrderStatus,
@@ -86,7 +86,7 @@ async function getLatest(
         .limit(quantity);
 }
 
-async function createSellOrder(
+export async function createSellOrder(
     userId: string,
     resourceId: string,
     quantityToSell: number,
@@ -110,7 +110,7 @@ async function createSellOrder(
     });
 }
 
-async function createBuyOrder(
+export async function createBuyOrder(
     userId: string,
     resourceId: string,
     quantity: number,
@@ -135,7 +135,7 @@ async function createBuyOrder(
     });
 }
 
-async function applyOrderExecution(
+export async function applyOrderExecution(
     tx: DbTransaction,
     order: Models.Order,
     processedQuantity: number,
@@ -158,7 +158,7 @@ async function applyOrderExecution(
     return updatedOrder;
 }
 
-async function getNextOpenOrderForProcessing(tx: DbTransaction): Promise<Models.Order | undefined> {
+export async function getNextOpenOrderForProcessing(tx: DbTransaction): Promise<Models.Order | undefined> {
     const [nextOrder] = await tx
         .select()
         .from(orders)
@@ -169,7 +169,7 @@ async function getNextOpenOrderForProcessing(tx: DbTransaction): Promise<Models.
     return nextOrder;
 }
 
-async function getBestLockedMatchingSellOrder(
+export async function getBestLockedMatchingSellOrder(
     tx: DbTransaction,
     buyOrder: Models.Order,
 ): Promise<Models.Order | undefined> {
@@ -190,7 +190,7 @@ async function getBestLockedMatchingSellOrder(
     return matchingOrder;
 }
 
-async function getBestLockedMatchingBuyOrder(
+export async function getBestLockedMatchingBuyOrder(
     tx: DbTransaction,
     sellOrder: Models.Order,
 ): Promise<Models.Order | undefined> {
@@ -211,17 +211,6 @@ async function getBestLockedMatchingBuyOrder(
     return matchingOrder;
 }
 
-export const OrderRepository = {
-    add,
-    get,
-    getLatest,
-    getOrders: get,
-    getPrices: getLatest,
-    getResourcesByUserId: HoldingsRepository.getUserHoldings,
-    createSellOrder,
-    createBuyOrder,
-    applyOrderExecution,
-    getNextOpenOrderForProcessing,
-    getBestLockedMatchingSellOrder,
-    getBestLockedMatchingBuyOrder,
-};
+export const getOrders = get;
+export const getPrices = getLatest;
+export const getResourcesByUserId = HoldingsRepository.getUserHoldings;

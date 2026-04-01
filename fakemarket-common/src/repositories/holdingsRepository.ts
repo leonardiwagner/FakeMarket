@@ -5,7 +5,7 @@ import * as Constants from '../models/constants';
 import * as Errors from '../models/errors';
 import type * as Models from '../models/models';
 
-async function getUserHoldings(userId: string, resourceId?: string): Promise<Models.Holding[]> {
+export async function getUserHoldings(userId: string, resourceId?: string): Promise<Models.Holding[]> {
     return await db
         .select()
         .from(holdings)
@@ -17,7 +17,7 @@ async function getUserHoldings(userId: string, resourceId?: string): Promise<Mod
         );
 }
 
-async function getUserMoney(userId: string): Promise<number> {
+export async function getUserMoney(userId: string): Promise<number> {
     const [holding] = await db
         .select()
         .from(holdings)
@@ -35,7 +35,7 @@ async function getUserMoney(userId: string): Promise<number> {
     return holding.quantity;
 }
 
-async function updateHoldingQuantity(
+export async function updateHoldingQuantity(
     dbTransaction: DbTransaction,
     userId: string,
     resourceId: string,
@@ -58,7 +58,7 @@ async function updateHoldingQuantity(
     return holding;
 }
 
-async function addOrUpdateUserHolding(
+export async function addOrUpdateUserHolding(
     dbTransaction: DbTransaction,
     userId: string,
     resourceId: string,
@@ -83,7 +83,7 @@ async function addOrUpdateUserHolding(
     return holding;
 }
 
-async function upsertHoldingQuantity(
+export async function upsertHoldingQuantity(
     dbTransaction: DbTransaction,
     userId: string,
     resourceId: string,
@@ -107,7 +107,7 @@ async function upsertHoldingQuantity(
     return await addOrUpdateUserHolding(dbTransaction, userId, resourceId, quantity);
 }
 
-async function updateUserMoney(
+export async function updateUserMoney(
     dbTransaction: DbTransaction,
     userId: string,
     amount: number,
@@ -115,12 +115,4 @@ async function updateUserMoney(
     return await updateHoldingQuantity(dbTransaction, userId, Constants.RESOURCE_ID_USD, amount);
 }
 
-export const HoldingsRepository = {
-    getUserHoldings,
-    getResourcesByUserId: getUserHoldings,
-    getUserMoney,
-    updateHoldingQuantity,
-    addOrUpdateUserHolding,
-    upsertHoldingQuantity,
-    updateUserMoney,
-};
+export const getResourcesByUserId = getUserHoldings;

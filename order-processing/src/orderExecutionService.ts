@@ -32,7 +32,7 @@ async function settleTrade(
     const tradeValue = tradedQuantity * tradePrice;
     const buyerRefund = tradedQuantity * Math.max(0, buyOrder.price - tradePrice);
 
-    await TradeRepository.TradeRepository.insertTrade(
+    await TradeRepository.insertTrade(
         tx,
         buyOrder.id,
         sellOrder.id,
@@ -41,15 +41,15 @@ async function settleTrade(
         tradePrice,
     );
 
-    await HoldingsRepository.HoldingsRepository.upsertHoldingQuantity(tx, buyOrder.userId, buyOrder.resourceId, tradedQuantity);
-    await HoldingsRepository.HoldingsRepository.upsertHoldingQuantity(tx, sellOrder.userId, Constants.RESOURCE_ID_USD, tradeValue);
+    await HoldingsRepository.upsertHoldingQuantity(tx, buyOrder.userId, buyOrder.resourceId, tradedQuantity);
+    await HoldingsRepository.upsertHoldingQuantity(tx, sellOrder.userId, Constants.RESOURCE_ID_USD, tradeValue);
 
     if (buyerRefund > 0) {
-        await HoldingsRepository.HoldingsRepository.upsertHoldingQuantity(tx, buyOrder.userId, Constants.RESOURCE_ID_USD, buyerRefund);
+        await HoldingsRepository.upsertHoldingQuantity(tx, buyOrder.userId, Constants.RESOURCE_ID_USD, buyerRefund);
     }
 
-    const updatedBuyOrder = await OrderRepository.OrderRepository.applyOrderExecution(tx, buyOrder, tradedQuantity);
-    const updatedSellOrder = await OrderRepository.OrderRepository.applyOrderExecution(tx, sellOrder, tradedQuantity);
+    const updatedBuyOrder = await OrderRepository.applyOrderExecution(tx, buyOrder, tradedQuantity);
+    const updatedSellOrder = await OrderRepository.applyOrderExecution(tx, sellOrder, tradedQuantity);
 
     return {
         buyOrder: updatedBuyOrder,
@@ -59,15 +59,15 @@ async function settleTrade(
 
 export async function processNextOpenOrder(): Promise<number> {
     return await db.transaction(async (tx: DbTransaction) => {
-        const nextOrder = await OrderRepository.OrderRepository.getNextOpenOrderForProcessing(tx);
+        const nextOrder = await OrderRepository.getNextOpenOrderForProcessing(tx);
 
         if (!nextOrder) {
             return 0;
         }
 
         const matchingOrder = nextOrder.type === Constants.OrderType.BUY
-            ? await OrderRepository.OrderRepository.getBestLockedMatchingSellOrder(tx, nextOrder)
-            : await OrderRepository.OrderRepository.getBestLockedMatchingBuyOrder(tx, nextOrder);
+            ? await OrderRepository.getBestLockedMatchingSellOrder(tx, nextOrder)
+            : await OrderRepository.getBestLockedMatchingBuyOrder(tx, nextOrder);
 
         if (!matchingOrder) {
             return 0;

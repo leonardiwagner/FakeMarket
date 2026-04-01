@@ -2,7 +2,7 @@ import { type DbTransaction } from '../db/client';
 import { trades } from '../db/schema';
 import type * as Models from '../models/models';
 
-async function insertTrade(
+export async function insertTrade(
     tx: DbTransaction,
     buyOrderId: string,
     sellOrderId: string,
@@ -23,7 +23,3 @@ async function insertTrade(
 
     return trade;
 }
-
-export const TradeRepository = {
-    insertTrade,
-};
