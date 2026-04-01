@@ -1,4 +1,4 @@
-import { generateOrders } from './orderGenerator';
+import * as OrderGenerator from './orderGenerator';
 
 
-generateOrders();
+OrderGenerator.generateOrders();

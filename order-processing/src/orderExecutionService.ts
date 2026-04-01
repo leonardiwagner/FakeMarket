@@ -1,9 +1,12 @@
-import * as Models from 'fakemarket-common';
-import { RESOURCE_ID_USD } from 'fakemarket-common';
-import { db, type DbTransaction } from 'fakemarket-common';
-import * as HoldingsRepository from 'fakemarket-common/HoldingsRepository';
-import * as OrderRepository from 'fakemarket-common/OrderRepository';
-import * as TradeRepository from 'fakemarket-common/TradeRepository';
+import {
+    db,
+    type DbTransaction,
+} from 'fakemarket-common/db/client';
+import * as Constants from 'fakemarket-common/models/constants';
+import type * as Models from 'fakemarket-common/models/models';
+import * as HoldingsRepository from 'fakemarket-common/repositories/holdingsRepository';
+import * as OrderRepository from 'fakemarket-common/repositories/orderRepository';
+import * as TradeRepository from 'fakemarket-common/repositories/tradeRepository';
 
 type MutableOrder = Models.Order;
 
@@ -29,7 +32,7 @@ async function settleTrade(
     const tradeValue = tradedQuantity * tradePrice;
     const buyerRefund = tradedQuantity * Math.max(0, buyOrder.price - tradePrice);
 
-    await TradeRepository.insertTrade(
+    await TradeRepository.TradeRepository.insertTrade(
         tx,
         buyOrder.id,
         sellOrder.id,
@@ -38,15 +41,15 @@ async function settleTrade(
         tradePrice,
     );
 
-    await HoldingsRepository.upsertHoldingQuantity(tx, buyOrder.userId, buyOrder.resourceId, tradedQuantity);
-    await HoldingsRepository.upsertHoldingQuantity(tx, sellOrder.userId, RESOURCE_ID_USD, tradeValue);
+    await HoldingsRepository.HoldingsRepository.upsertHoldingQuantity(tx, buyOrder.userId, buyOrder.resourceId, tradedQuantity);
+    await HoldingsRepository.HoldingsRepository.upsertHoldingQuantity(tx, sellOrder.userId, Constants.RESOURCE_ID_USD, tradeValue);
 
     if (buyerRefund > 0) {
-        await HoldingsRepository.upsertHoldingQuantity(tx, buyOrder.userId, RESOURCE_ID_USD, buyerRefund);
+        await HoldingsRepository.HoldingsRepository.upsertHoldingQuantity(tx, buyOrder.userId, Constants.RESOURCE_ID_USD, buyerRefund);
     }
 
-    const updatedBuyOrder = await OrderRepository.applyOrderExecution(tx, buyOrder, tradedQuantity);
-    const updatedSellOrder = await OrderRepository.applyOrderExecution(tx, sellOrder, tradedQuantity);
+    const updatedBuyOrder = await OrderRepository.OrderRepository.applyOrderExecution(tx, buyOrder, tradedQuantity);
+    const updatedSellOrder = await OrderRepository.OrderRepository.applyOrderExecution(tx, sellOrder, tradedQuantity);
 
     return {
         buyOrder: updatedBuyOrder,
@@ -56,21 +59,21 @@ async function settleTrade(
 
 export async function processNextOpenOrder(): Promise<number> {
     return await db.transaction(async (tx: DbTransaction) => {
-        const nextOrder = await OrderRepository.getNextOpenOrderForProcessing(tx);
+        const nextOrder = await OrderRepository.OrderRepository.getNextOpenOrderForProcessing(tx);
 
         if (!nextOrder) {
             return 0;
         }
 
-        const matchingOrder = nextOrder.type === Models.OrderType.BUY
-            ? await OrderRepository.getBestLockedMatchingSellOrder(tx, nextOrder)
-            : await OrderRepository.getBestLockedMatchingBuyOrder(tx, nextOrder);
+        const matchingOrder = nextOrder.type === Constants.OrderType.BUY
+            ? await OrderRepository.OrderRepository.getBestLockedMatchingSellOrder(tx, nextOrder)
+            : await OrderRepository.OrderRepository.getBestLockedMatchingBuyOrder(tx, nextOrder);
 
         if (!matchingOrder) {
             return 0;
         }
 
-        const result = nextOrder.type === Models.OrderType.BUY
+        const result = nextOrder.type === Constants.OrderType.BUY
             ? await settleTrade(tx, nextOrder, matchingOrder)
             : await settleTrade(tx, matchingOrder, nextOrder);
 

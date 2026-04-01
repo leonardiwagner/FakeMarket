@@ -1,8 +1,8 @@
 import { type DbTransaction } from '../db/client';
 import { trades } from '../db/schema';
-import * as Models from '../models';
+import type * as Models from '../models/models';
 
-export async function insertTrade(
+async function insertTrade(
     tx: DbTransaction,
     buyOrderId: string,
     sellOrderId: string,
@@ -23,3 +23,7 @@ export async function insertTrade(
 
     return trade;
 }
+
+export const TradeRepository = {
+    insertTrade,
+};

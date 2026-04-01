@@ -1,12 +1,14 @@
-import { getRobotOrderDecision } from './domain/orderDecision';
-import * as Models from 'fakemarket-common';
-import * as HoldingsRepository from 'fakemarket-common/HoldingsRepository';
-import * as OrderRepository from 'fakemarket-common/OrderRepository';
-import * as UserRepository from 'fakemarket-common/UserRepository';
+import * as OrderDecision from './domain/orderDecision';
+import * as Constants from 'fakemarket-common/models/constants';
+import * as Errors from 'fakemarket-common/models/errors';
+import type * as Models from 'fakemarket-common/models/models';
+import * as HoldingsRepository from 'fakemarket-common/repositories/holdingsRepository';
+import * as OrderRepository from 'fakemarket-common/repositories/orderRepository';
+import * as UserRepository from 'fakemarket-common/repositories/userRepository';
 import { log } from 'node:console';
 
 async function getUserHoldingsForResource(userId: string, resourceId: string): Promise<number> {
-    const [holding]= await HoldingsRepository.getUserHoldings(userId, resourceId);
+    const [holding]= await HoldingsRepository.HoldingsRepository.getUserHoldings(userId, resourceId);
     if(holding){
         return holding.quantity;
     }
@@ -16,13 +18,13 @@ async function getUserHoldingsForResource(userId: string, resourceId: string): P
 
 async function generateOrdersFromUserHoldings(robotUser: Models.User, holdings: Models.Holding[]) {
     for(const holding of holdings) {
-            const latestOrdersToBuy = await OrderRepository.getOrders({ resourceId: holding.resourceId, orderType: Models.OrderType.BUY, orderStatus: Models.OrderStatus.OPEN });
-            const latestOrdersToSell = await OrderRepository.getOrders({ resourceId: holding.resourceId, orderType: Models.OrderType.SELL, orderStatus: Models.OrderStatus.OPEN });
-            const latestSoldPrices = await OrderRepository.getPrices(holding.resourceId, Models.OrderType.BUY, Models.OrderStatus.OPEN);
+            const latestOrdersToBuy = await OrderRepository.OrderRepository.get({ resourceId: holding.resourceId, orderType: Constants.OrderType.BUY, orderStatus: Constants.OrderStatus.OPEN });
+            const latestOrdersToSell = await OrderRepository.OrderRepository.get({ resourceId: holding.resourceId, orderType: Constants.OrderType.SELL, orderStatus: Constants.OrderStatus.OPEN });
+            const latestSoldPrices = await OrderRepository.OrderRepository.getLatest(holding.resourceId, Constants.OrderType.BUY, Constants.OrderStatus.OPEN);
             const userHoldingsQuantity = await getUserHoldingsForResource(robotUser.id, holding.resourceId);
-            const userMoney = await HoldingsRepository.getUserMoney(robotUser.id);
+            const userMoney = await HoldingsRepository.HoldingsRepository.getUserMoney(robotUser.id);
             
-            const decision = getRobotOrderDecision(
+            const decision = OrderDecision.getRobotOrderDecision(
                 userMoney,
                 userHoldingsQuantity,
                 latestOrdersToBuy,
@@ -37,10 +39,10 @@ async function generateOrdersFromUserHoldings(robotUser: Models.User, holdings: 
                 }
 
                 try {
-                    await OrderRepository.createBuyOrder(robotUser.id, holding.resourceId, decision.quantity, decision.price);
+                    await OrderRepository.OrderRepository.createBuyOrder(robotUser.id, holding.resourceId, decision.quantity, decision.price);
                 } catch (error: any) {
                     log(`Failed to create buy order for user ${robotUser.id} on resource ${holding.resourceId}: ${error.message}`);
-                    if (!(error instanceof Models.InsufficientMoneyError)) {
+                    if (!(error instanceof Errors.InsufficientMoneyError)) {
                         throw error;
                     }
 
@@ -53,10 +55,10 @@ async function generateOrdersFromUserHoldings(robotUser: Models.User, holdings: 
                 }
 
                 try {
-                    await OrderRepository.createSellOrder(robotUser.id, holding.resourceId, decision.quantity, decision.price);
+                    await OrderRepository.OrderRepository.createSellOrder(robotUser.id, holding.resourceId, decision.quantity, decision.price);
                 } catch (error: any) {
                     log(`Failed to create sell order for user ${robotUser.id} on resource ${holding.resourceId}: ${error.message}`);
-                    if (!(error instanceof Models.InsufficientResourcesError)) {
+                    if (!(error instanceof Errors.InsufficientResourcesError)) {
                         throw error;
                     }
 
@@ -69,7 +71,7 @@ async function generateOrdersFromUserHoldings(robotUser: Models.User, holdings: 
 async function generatedOrdersFromRobots(users: Models.User[]) {
     for(const robotUser of users) {
         // only oil for now
-        const holdings = (await OrderRepository.getResourcesByUserId(robotUser.id))
+        const holdings = (await HoldingsRepository.HoldingsRepository.getUserHoldings(robotUser.id))
             .filter(holding => holding.resourceId === "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
 
         await generateOrdersFromUserHoldings(robotUser, holdings);
@@ -87,7 +89,7 @@ async function generateOrdersFromInterval(robotUsers: Models.User[], ms: number)
 
 export async function generateOrders() {
     // TODO get the robot users and generate orders for them
-    const robotUsers = await UserRepository.getUsersByType(Models.UserType.ROBOT);
+    const robotUsers = await UserRepository.UserRepository.getUsersByType(Constants.UserType.ROBOT);
     
     await generateOrdersFromInterval(robotUsers, 5000);
 }

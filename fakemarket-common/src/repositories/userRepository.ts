@@ -1,8 +1,13 @@
 import { eq } from 'drizzle-orm';
 import { db } from '../db/client';
 import { users } from '../db/schema';
-import * as Models from '../models';
+import * as Constants from '../models/constants';
+import type * as Models from '../models/models';
 
-export async function getUsersByType(userType: Models.UserType): Promise<Models.User[]> {
+async function getUsersByType(userType: Constants.UserType): Promise<Models.User[]> {
     return await db.select().from(users).where(eq(users.type, userType));
 }
+
+export const UserRepository = {
+    getUsersByType,
+};

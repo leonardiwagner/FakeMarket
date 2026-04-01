@@ -1,4 +1,4 @@
-import * as Models from 'fakemarket-common';
+import type * as Models from 'fakemarket-common/models/models';
 
 export function getRobotOrderDecision(
     userMoney: number,

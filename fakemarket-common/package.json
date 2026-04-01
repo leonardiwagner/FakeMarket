@@ -10,36 +10,36 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./HoldingsRepository": {
-      "types": "./dist/HoldingsRepository.d.ts",
-      "default": "./dist/HoldingsRepository.js"
+    "./db/*": {
+      "types": "./dist/db/*.d.ts",
+      "default": "./dist/db/*.js"
     },
-    "./OrderRepository": {
-      "types": "./dist/OrderRepository.d.ts",
-      "default": "./dist/OrderRepository.js"
+    "./models/*": {
+      "types": "./dist/models/*.d.ts",
+      "default": "./dist/models/*.js"
     },
-    "./TradeRepository": {
-      "types": "./dist/TradeRepository.d.ts",
-      "default": "./dist/TradeRepository.js"
+    "./repositories/*": {
+      "types": "./dist/repositories/*.d.ts",
+      "default": "./dist/repositories/*.js"
     },
-    "./UserRepository": {
-      "types": "./dist/UserRepository.d.ts",
-      "default": "./dist/UserRepository.js"
+    "./services/*": {
+      "types": "./dist/services/*.d.ts",
+      "default": "./dist/services/*.js"
     }
   },
   "typesVersions": {
     "*": {
-      "HoldingsRepository": [
-        "dist/HoldingsRepository.d.ts"
+      "db/*": [
+        "dist/db/*.d.ts"
       ],
-      "OrderRepository": [
-        "dist/OrderRepository.d.ts"
+      "models/*": [
+        "dist/models/*.d.ts"
       ],
-      "TradeRepository": [
-        "dist/TradeRepository.d.ts"
+      "repositories/*": [
+        "dist/repositories/*.d.ts"
       ],
-      "UserRepository": [
-        "dist/UserRepository.d.ts"
+      "services/*": [
+        "dist/services/*.d.ts"
       ]
     }
   },
