@@ -1,42 +1,39 @@
 import { db, type DbTransaction } from '../db/client';
 import { InsufficientMoneyError, InsufficientResourcesError } from '../errors';
 import * as Models from '../models';
-import { removeHoldingQuantity } from '../repositories/holdingsRepository';
-import { insertOrder } from '../repositories/orderRepository';
+import * as OrderRepository from '../repositories/orderRepository';
+import * as HoldingsRepository from '../repositories/holdingsRepository';
 
-export async function createSellOrder(userId: string, resourceId: string, quantity: number, price: number): Promise<Models.Order> {
+export async function createSellOrder(userId: string, resourceId: string, quantityToSell: number, price: number): Promise<Models.Order> {
     return await db.transaction(async (dbTransaction: DbTransaction) => {
-        const holding = await removeHoldingQuantity(dbTransaction, userId, resourceId, quantity);
+        const [holding] = await HoldingsRepository.getUserHoldings(userId, resourceId);
 
-        if (!holding) {
+        if (!holding || holding.quantity < quantityToSell) {
             throw new InsufficientResourcesError();
         }
 
-        return await insertOrder(
+        return await OrderRepository.add(
             dbTransaction,
             userId,
             resourceId,
             Models.OrderType.SELL,
             price,
-            quantity,
+            quantityToSell,
         );
     });
 }
 
 export async function createBuyOrder(userId: string, resourceId: string, quantity: number, price: number): Promise<Models.Order> {
     return await db.transaction(async (dbTransaction: DbTransaction) => {
-        const money = await removeHoldingQuantity(
-            dbTransaction,
-            userId,
-            Models.RESOURCE_ID_USD,
-            quantity * price,
-        );
+        
+        const money = await HoldingsRepository.getUserMoney(userId);
 
-        if (!money) {
+        const totalPrice = price * quantity;
+        if ( money < totalPrice) {
             throw new InsufficientMoneyError();
         }
 
-        return await insertOrder(
+        return await OrderRepository.add(
             dbTransaction,
             userId,
             resourceId,

@@ -8,4 +8,3 @@ export * from './repositories/orderRepository';
 export * from './repositories/tradeRepository';
 export * from './repositories/userRepository';
 export * from './services/orderCreationService';
-export * from './services/orderExecutionService';

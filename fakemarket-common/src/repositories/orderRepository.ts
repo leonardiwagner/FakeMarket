@@ -1,9 +1,9 @@
-import { and, asc, desc, eq, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, lte, notInArray, sql } from 'drizzle-orm';
 import { db, type DbTransaction } from '../db/client';
 import { orders } from '../db/schema';
 import * as Models from '../models';
 
-export async function insertOrder(
+export async function add(
     tx: DbTransaction,
     userId: string,
     resourceId: string,
@@ -26,12 +26,8 @@ export async function insertOrder(
     return order;
 }
 
-export async function addOrder(order: Models.Order): Promise<Models.Order> {
-    const [addedOrder] = await db.insert(orders).values(order).returning();
-    return addedOrder;
-}
 
-export async function getOrders(
+export async function get(
     {
         resourceId,
         userId,
@@ -63,24 +59,7 @@ export async function getOrders(
         .limit(quantity);
 }
 
-export async function getOrdersByResourceIdTypeAndStatus(
-    resourceId: string,
-    type: Models.OrderType,
-    status: Models.OrderStatus,
-): Promise<Models.Order[]> {
-    return await db
-        .select()
-        .from(orders)
-        .where(
-            and(
-                eq(orders.resourceId, resourceId),
-                eq(orders.type, type),
-                eq(orders.status, status),
-            ),
-        );
-}
-
-export async function getPrices(
+export async function getLatest(
     resourceId: string,
     orderType: Models.OrderType,
     orderStatus: Models.OrderStatus,
@@ -103,64 +82,4 @@ export async function getPrices(
         .groupBy(orders.price)
         .orderBy(sortDirection === 'desc' ? desc(orders.price) : asc(orders.price))
         .limit(quantity);
-}
-
-export async function getOpenOrderResourceIds(): Promise<string[]> {
-    const openOrders = await db
-        .selectDistinct({
-            resourceId: orders.resourceId,
-        })
-        .from(orders)
-        .where(eq(orders.status, Models.OrderStatus.OPEN));
-
-    return openOrders.map((order) => order.resourceId);
-}
-
-export async function getOpenBuyOrdersForResource(resourceId: string): Promise<Models.Order[]> {
-    return await db
-        .select()
-        .from(orders)
-        .where(
-            and(
-                eq(orders.resourceId, resourceId),
-                eq(orders.type, Models.OrderType.BUY),
-                eq(orders.status, Models.OrderStatus.OPEN),
-            ),
-        )
-        .orderBy(desc(orders.price), asc(orders.created));
-}
-
-export async function getOpenSellOrdersForResource(resourceId: string): Promise<Models.Order[]> {
-    return await db
-        .select()
-        .from(orders)
-        .where(
-            and(
-                eq(orders.resourceId, resourceId),
-                eq(orders.type, Models.OrderType.SELL),
-                eq(orders.status, Models.OrderStatus.OPEN),
-            ),
-        )
-        .orderBy(asc(orders.price), asc(orders.created));
-}
-
-export async function applyOrderExecution(
-    tx: DbTransaction,
-    order: Models.Order,
-    processedQuantity: number,
-): Promise<Models.Order> {
-    const nextQuantity = Math.max(0, order.quantity - processedQuantity);
-    const nextProcessedQuantity = order.quantityProcessed + processedQuantity;
-    const [updatedOrder] = await tx
-        .update(orders)
-        .set({
-            quantity: nextQuantity,
-            quantityProcessed: nextProcessedQuantity,
-            status: nextQuantity === 0 ? Models.OrderStatus.EXECUTED : Models.OrderStatus.OPEN,
-            updated: sql`now()`,
-        })
-        .where(eq(orders.id, order.id))
-        .returning();
-
-    return updatedOrder;
 }

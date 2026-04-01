@@ -6,25 +6,54 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.js",
-    "./public": "./dist/public.js",
-    "./db/client": "./dist/db/client.js",
-    "./db/schema": "./dist/db/schema.js",
-    "./errors": "./dist/errors.js",
-    "./models": "./dist/models.js",
-    "./constants": "./dist/constants.js",
-    "./repositories/holdingsRepository": "./dist/repositories/holdingsRepository.js",
-    "./repositories/orderRepository": "./dist/repositories/orderRepository.js",
-    "./repositories/tradeRepository": "./dist/repositories/tradeRepository.js",
-    "./repositories/userRepository": "./dist/repositories/userRepository.js",
-    "./services/orderCreationService": "./dist/services/orderCreationService.js",
-    "./services/orderExecutionService": "./dist/services/orderExecutionService.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./HoldingsRepository": {
+      "types": "./dist/HoldingsRepository.d.ts",
+      "default": "./dist/HoldingsRepository.js"
+    },
+    "./OrderRepository": {
+      "types": "./dist/OrderRepository.d.ts",
+      "default": "./dist/OrderRepository.js"
+    },
+    "./TradeRepository": {
+      "types": "./dist/TradeRepository.d.ts",
+      "default": "./dist/TradeRepository.js"
+    },
+    "./UserRepository": {
+      "types": "./dist/UserRepository.d.ts",
+      "default": "./dist/UserRepository.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "HoldingsRepository": [
+        "dist/HoldingsRepository.d.ts"
+      ],
+      "OrderRepository": [
+        "dist/OrderRepository.d.ts"
+      ],
+      "TradeRepository": [
+        "dist/TradeRepository.d.ts"
+      ],
+      "UserRepository": [
+        "dist/UserRepository.d.ts"
+      ]
+    }
   },
   "scripts": {
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.1",
-    "pg": "^8.20.0"
+    "pg": "^8.20.0",
+    "ts-node-dev": "^2.0.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.10"
   }
 }

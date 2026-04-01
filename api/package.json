@@ -4,6 +4,7 @@
   "description": "",
   "main": "app.js",
   "scripts": {
+    "prestart": "npm --prefix ../fakemarket-common run build",
     "start": "node app.js"
   },
   "dependencies": {

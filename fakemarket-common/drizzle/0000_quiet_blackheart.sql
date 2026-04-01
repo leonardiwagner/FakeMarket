@@ -22,7 +22,7 @@ CREATE TABLE "orders" (
 	"price" integer NOT NULL,
 	"has_price_limit" boolean DEFAULT true NOT NULL,
 	"created" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated" timestamp with time zone DEFAULT now() NOT NULL
+	"processed" timestamp with time zone
 );
 --> statement-breakpoint
 CREATE TABLE "resources" (

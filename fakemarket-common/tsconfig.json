@@ -3,18 +3,6 @@
     "target": "ES2020",
     "module": "CommonJS",
     "moduleResolution": "node",
-    "baseUrl": ".",
-    "paths": {
-      "drizzle-orm": [
-        "../robots/node_modules/drizzle-orm"
-      ],
-      "drizzle-orm/*": [
-        "../robots/node_modules/drizzle-orm/*"
-      ],
-      "pg": [
-        "../robots/node_modules/pg"
-      ]
-    },
     "rootDir": "src",
     "outDir": "dist",
     "declaration": true,

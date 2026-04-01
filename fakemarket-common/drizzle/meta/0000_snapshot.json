@@ -151,12 +151,11 @@
           "notNull": true,
           "default": "now()"
         },
-        "updated": {
-          "name": "updated",
+        "processed": {
+          "name": "processed",
           "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
+          "notNull": false
         }
       },
       "indexes": {},

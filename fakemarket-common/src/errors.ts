@@ -11,3 +11,10 @@ export class InsufficientMoneyError extends Error {
         this.name = 'InsufficientMoneyError';
     }
 }
+
+export class MoneyHoldingNotFoundError extends Error {
+    constructor(message = 'User does not have a money holding.') {
+        super(message);
+        this.name = 'MoneyHoldingNotFoundError';
+    }
+}

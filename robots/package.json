@@ -4,26 +4,22 @@
   "description": "",
   "main": "dist/robots/src/app.js",
   "scripts": {
+    "predev": "npm --prefix ../fakemarket-common run build",
     "dev": "ts-node-dev --respawn src/app.ts",
     "build": "tsc",
+    "prestart": "npm --prefix ../fakemarket-common run build",
     "start": "node dist/robots/src/app.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@types/express": "^5.0.6",
     "@types/node": "^25.4.0",
-    "@types/pg": "^8.18.0",
-    "drizzle-kit": "^0.31.9",
     "ts-node-dev": "^2.0.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "fakemarket-common": "file:../fakemarket-common",
-    "drizzle-orm": "^0.45.1",
-    "express": "^5.2.1",
-    "pg": "^8.20.0"
+    "fakemarket-common": "file:../fakemarket-common"
   }
 }

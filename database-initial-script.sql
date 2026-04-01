@@ -52,25 +52,25 @@ create table orders (
   has_price_limit boolean not null default true,
 
   created timestamptz not null default now(),
-  updated timestamptz not null default now()
+  processed timestamptz
 );
 
 -- initial seed of resources via sell orders
 insert into public.orders (
   id, user_id, resource_id, type, status, quantity, quantity_processed, price
 ) values
-  ('10000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'sell', 'executed', 1000, 1000, 10.15),
-  ('10000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'sell', 'executed', 1000, 1000, 15.15);
+  ('10000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'sell', 'executed', 100000, 100000, 1000),
+  ('10000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'sell', 'executed', 100000, 100000, 1500);
 
 -- initial seed of buy orders to create some trades and populate the trade history
 insert into public.orders (
   id, user_id, resource_id, type, status, quantity, quantity_processed, price
 ) values
-  ('20000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'buy',  'executed', 100, 100, 10.5),
-  ('20000000-0000-0000-0000-000000000002', '33333333-3333-3333-3333-333333333333', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'buy',  'executed', 100, 100, 10.5),
-  ('20000000-0000-0000-0000-000000000003', '44444444-4444-4444-4444-444444444444', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'buy',  'executed', 100, 100, 10.5),
-  ('20000000-0000-0000-0000-000000000004', '55555555-5555-5555-5555-555555555555', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'buy',  'executed', 100, 100, 10.5),
-  ('20000000-0000-0000-0000-000000000005', '66666666-6666-6666-6666-666666666666', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'buy',  'executed', 100, 100, 10.5);
+  ('20000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'buy',  'executed', 100, 100, 1000),
+  ('20000000-0000-0000-0000-000000000002', '33333333-3333-3333-3333-333333333333', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'buy',  'executed', 100, 100, 1000),
+  ('20000000-0000-0000-0000-000000000003', '44444444-4444-4444-4444-444444444444', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'buy',  'executed', 100, 100, 1000),
+  ('20000000-0000-0000-0000-000000000004', '55555555-5555-5555-5555-555555555555', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'buy',  'executed', 100, 100, 1000),
+  ('20000000-0000-0000-0000-000000000005', '66666666-6666-6666-6666-666666666666', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'buy',  'executed', 100, 100, 1000);
 
 -- trades
 create table trades (
@@ -93,11 +93,11 @@ create index trades_resource_id_executed_at_idx on trades(resource_id, created d
 insert into public.trades (
   id, sell_order_id, buy_order_id, resource_id, quantity, price
 ) values
-  ('30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 100, 10.5),
-  ('30000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000002', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 100, 10.5),
-  ('30000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000003', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 100, 10.5),
-  ('30000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000004', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 100, 10.5),
-  ('30000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000005', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 100, 10.5);
+  ('30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 100, 1000),
+  ('30000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000002', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 100, 1000),
+  ('30000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000003', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 100, 1000),
+  ('30000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000004', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 100, 1000),
+  ('30000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000005', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 100, 1000);
 
 -- holdings table that tracks the quantity of each resource held by each user
 create table holdings (
@@ -120,8 +120,8 @@ insert into holdings (user_id, resource_id, quantity) values
   ('66666666-6666-6666-6666-666666666666', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 100),
 
   -- add USD dollars to the robot users so they can place buy orders
-  ('22222222-2222-2222-2222-222222222222', 'f0f0f0f0-f0f0-f0f0-f0f0-f0f0f0f0f0f0', 100),
-  ('33333333-3333-3333-3333-333333333333', 'f0f0f0f0-f0f0-f0f0-f0f0-f0f0f0f0f0f0', 100),
-  ('44444444-4444-4444-4444-444444444444', 'f0f0f0f0-f0f0-f0f0-f0f0-f0f0f0f0f0f0', 100),
-  ('55555555-5555-5555-5555-555555555555', 'f0f0f0f0-f0f0-f0f0-f0f0-f0f0f0f0f0f0', 100),
-  ('66666666-6666-6666-6666-666666666666', 'f0f0f0f0-f0f0-f0f0-f0f0-f0f0f0f0f0f0', 100);
+  ('22222222-2222-2222-2222-222222222222', 'f0f0f0f0-f0f0-f0f0-f0f0-f0f0f0f0f0f0', 10000),
+  ('33333333-3333-3333-3333-333333333333', 'f0f0f0f0-f0f0-f0f0-f0f0-f0f0f0f0f0f0', 10000),
+  ('44444444-4444-4444-4444-444444444444', 'f0f0f0f0-f0f0-f0f0-f0f0-f0f0f0f0f0f0', 10000),
+  ('55555555-5555-5555-5555-555555555555', 'f0f0f0f0-f0f0-f0f0-f0f0-f0f0f0f0f0f0', 10000),
+  ('66666666-6666-6666-6666-666666666666', 'f0f0f0f0-f0f0-f0f0-f0f0-f0f0f0f0f0f0', 10000);
