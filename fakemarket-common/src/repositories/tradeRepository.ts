@@ -2,7 +2,7 @@ import { type DbTransaction } from '../db/client';
 import { trades } from '../db/schema';
 import type * as Models from '../models/models';
 
-export async function insertTrade(
+export async function add(
     tx: DbTransaction,
     buyOrderId: string,
     sellOrderId: string,

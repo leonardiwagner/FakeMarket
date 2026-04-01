@@ -11,6 +11,7 @@ export enum OrderType {
 
 export enum OrderStatus {
     OPEN = 'open',
+    PARTIAL = 'partial',
     EXECUTED = 'executed',
 }
 

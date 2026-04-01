@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, lte, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, lte, or, sql } from 'drizzle-orm';
 import { db, type DbTransaction } from '../db/client';
 import { orders } from '../db/schema';
 import * as Constants from '../models/constants';
@@ -24,6 +24,20 @@ export async function add(
             quantity,
             status: Constants.OrderStatus.OPEN,
         })
+        .returning();
+
+    return order;
+}
+
+export async function update(
+    tx: DbTransaction,
+    orderId: string,
+    changes: Partial<Omit<Models.Order, 'id' | 'userId' | 'resourceId' | 'type' | 'created'>>,
+): Promise<Models.Order | undefined> {
+    const [order] = await tx
+        .update(orders)
+        .set(changes)
+        .where(eq(orders.id, orderId))
         .returning();
 
     return order;
@@ -135,36 +149,61 @@ export async function createBuyOrder(
     });
 }
 
-export async function applyOrderExecution(
-    tx: DbTransaction,
-    order: Models.Order,
-    processedQuantity: number,
-): Promise<Models.Order> {
-    const nextProcessedQuantity = order.quantityProcessed + processedQuantity;
-    const nextStatus = nextProcessedQuantity >= order.quantity
-        ? Constants.OrderStatus.EXECUTED
-        : Constants.OrderStatus.OPEN;
 
-    const [updatedOrder] = await tx
-        .update(orders)
-        .set({
-            quantityProcessed: nextProcessedQuantity,
-            status: nextStatus,
-            processed: sql`now()`,
-        })
-        .where(eq(orders.id, order.id))
-        .returning();
-
-    return updatedOrder;
-}
-
-export async function getNextOpenOrderForProcessing(tx: DbTransaction): Promise<Models.Order | undefined> {
-    const [nextOrder] = await tx
+export async function getTheNextBuyOrderToProcess(
+    dbTransaction: DbTransaction
+): Promise<Models.Order | undefined> {
+    const [nextOrder] = await dbTransaction
         .select()
         .from(orders)
-        .where(eq(orders.status, Constants.OrderStatus.OPEN))
-        .orderBy(asc(orders.created))
-        .limit(1);
+        .where(
+            and(
+                or(
+                    eq(orders.status, Constants.OrderStatus.OPEN),
+                    eq(orders.status, Constants.OrderStatus.PARTIAL)
+                ),
+                eq(orders.type, Constants.OrderType.BUY),
+            ),
+        )
+        // oldest order without processing, or oldest processed order, to ensure fairness in order processing
+        .orderBy(
+            sql`${orders.processed} asc nulls first`,
+            asc(orders.created),
+        )
+        .limit(1)
+        .for('update', { skipLocked: true })
+
+    return nextOrder;
+}
+
+export async function getTheNextSellOrderToProcess(
+    dbTransaction: DbTransaction,
+    resourceId: string,
+    maxPrice: number,
+    requiredQuantity: number,
+): Promise<Models.Order | undefined> {
+    const [nextOrder] = await dbTransaction
+        .select()
+        .from(orders)
+        .where(
+            and(
+                eq(orders.type, Constants.OrderType.SELL),
+                eq(orders.resourceId, resourceId),
+                or(
+                    eq(orders.status, Constants.OrderStatus.OPEN),
+                    eq(orders.status, Constants.OrderStatus.PARTIAL),
+                ),
+                lte(orders.price, maxPrice),
+                gte(orders.quantity, requiredQuantity),
+            ),
+        )
+        .orderBy(
+            asc(orders.price),
+            desc(orders.quantity),
+            desc(orders.created),
+        )
+        .limit(1)
+        .for('update', { skipLocked: true });
 
     return nextOrder;
 }
@@ -210,7 +249,3 @@ export async function getBestLockedMatchingBuyOrder(
 
     return matchingOrder;
 }
-
-export const getOrders = get;
-export const getPrices = getLatest;
-export const getResourcesByUserId = HoldingsRepository.getUserHoldings;
