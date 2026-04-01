@@ -58,61 +58,6 @@ export async function updateHoldingQuantity(
     return holding;
 }
 
-export async function addOrUpdateUserHolding(
-    dbTransaction: DbTransaction,
-    userId: string,
-    resourceId: string,
-    quantity: number,
-): Promise<Models.Holding> {
-    const [holding] = await dbTransaction
-        .insert(holdings)
-        .values({
-            userId,
-            resourceId,
-            quantity,
-        })
-        .onConflictDoUpdate({
-            target: [holdings.userId, holdings.resourceId],
-            set: {
-                quantity,
-                updated: sql`now()`,
-            },
-        })
-        .returning();
 
-    return holding;
-}
-
-export async function upsertHoldingQuantity(
-    dbTransaction: DbTransaction,
-    userId: string,
-    resourceId: string,
-    quantity: number,
-): Promise<Models.Holding> {
-    const [existingHolding] = await dbTransaction
-        .select()
-        .from(holdings)
-        .where(
-            and(
-                eq(holdings.userId, userId),
-                eq(holdings.resourceId, resourceId),
-            ),
-        )
-        .limit(1);
-
-    if (existingHolding) {
-        return await updateHoldingQuantity(dbTransaction, userId, resourceId, quantity);
-    }
-
-    return await addOrUpdateUserHolding(dbTransaction, userId, resourceId, quantity);
-}
-
-export async function updateUserMoney(
-    dbTransaction: DbTransaction,
-    userId: string,
-    amount: number,
-): Promise<Models.Holding> {
-    return await updateHoldingQuantity(dbTransaction, userId, Constants.RESOURCE_ID_USD, amount);
-}
 
 export const getResourcesByUserId = getUserHoldings;
