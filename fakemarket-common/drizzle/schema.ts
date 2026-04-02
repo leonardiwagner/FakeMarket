@@ -80,6 +80,7 @@ export const holdings = pgTable("holdings", {
 	quantity: integer().default(0).notNull(),
 	created: timestamp({ withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 	updated: timestamp({ withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	quantityReserved: integer("quantity_reserved").default(0).notNull(),
 }, (table) => [
 	foreignKey({
 			columns: [table.userId],

@@ -104,6 +104,7 @@ create table holdings (
     user_id uuid not null references users(id) on delete restrict,
     resource_id uuid not null references resources(id) on delete restrict,
     quantity integer not null default 0,
+    quantity_reserved integer not null default 0,
 
     created timestamptz not null default now(),
     updated timestamptz not null default now(),

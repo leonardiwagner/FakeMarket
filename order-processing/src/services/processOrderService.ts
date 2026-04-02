@@ -46,11 +46,15 @@ export async function processOrder(
     });
 
     const orderTotalPrice = tradeResourceQuantity.quantityToBuy * sellOrder.price;
+    const reservedBuyOrderPrice = tradeResourceQuantity.quantityToBuy * buyOrder.price;
 
-    await HoldingsRepository.updateHoldingQuantity(dbTransaction, buyOrder.userId, buyOrder.resourceId, tradeResourceQuantity.quantityToBuy);
-    await HoldingsRepository.updateHoldingQuantity(dbTransaction, buyOrder.userId, Constants.RESOURCE_ID_USD, -orderTotalPrice);
-    await HoldingsRepository.updateHoldingQuantity(dbTransaction, sellOrder.userId, sellOrder.resourceId, -tradeResourceQuantity.quantityToBuy);
-    await HoldingsRepository.updateHoldingQuantity(dbTransaction, sellOrder.userId, Constants.RESOURCE_ID_USD, orderTotalPrice);
+    // Update holdings of the buyer
+    await HoldingsRepository.updateHoldingQuantity(dbTransaction, buyOrder.userId, buyOrder.resourceId, tradeResourceQuantity.quantityToBuy, 0);
+    await HoldingsRepository.updateHoldingQuantity(dbTransaction, buyOrder.userId, Constants.RESOURCE_ID_USD, -orderTotalPrice, -reservedBuyOrderPrice);
+    
+    // Update holdings of the seller
+    await HoldingsRepository.updateHoldingQuantity(dbTransaction, sellOrder.userId, sellOrder.resourceId, -tradeResourceQuantity.quantityToBuy, -tradeResourceQuantity.quantityToBuy);
+    await HoldingsRepository.updateHoldingQuantity(dbTransaction, sellOrder.userId, Constants.RESOURCE_ID_USD, orderTotalPrice, 0);
 
     return updatedBuyOrder;
 }

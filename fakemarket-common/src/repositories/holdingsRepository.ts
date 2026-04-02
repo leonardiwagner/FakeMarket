@@ -39,12 +39,14 @@ export async function updateHoldingQuantity(
     dbTransaction: DbTransaction,
     userId: string,
     resourceId: string,
-    quantity: number,
+    quantitySum: number,
+    quantityReservedSum: number,
 ): Promise<Models.Holding> {
     const [holding] = await dbTransaction
         .update(holdings)
         .set({
-            quantity: sql`${holdings.quantity} + ${quantity}`,
+            quantity: sql`${holdings.quantity} + ${quantitySum}`,
+            quantityReserved: sql`${holdings.quantityReserved} + ${quantityReservedSum}`,
             updated: sql`now()`,
         })
         .where(

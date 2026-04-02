@@ -75,6 +75,7 @@ export const holdings = pgTable('holdings', {
     userId: uuid('user_id').notNull(),
     resourceId: uuid('resource_id').notNull(),
     quantity: integer().default(0).notNull(),
+    quantityReserved: integer('quantity_reserved').default(0).notNull(),
     created: timestamp({ withTimezone: true, mode: 'string' }).defaultNow().notNull(),
     updated: timestamp({ withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 }, (table) => [

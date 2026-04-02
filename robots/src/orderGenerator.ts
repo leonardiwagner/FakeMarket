@@ -4,6 +4,7 @@ import * as Errors from 'fakemarket-common/models/errors';
 import type * as Models from 'fakemarket-common/models/models';
 import * as HoldingsRepository from 'fakemarket-common/repositories/holdingsRepository';
 import * as OrderRepository from 'fakemarket-common/repositories/orderRepository';
+import * as OrderService from 'fakemarket-common/services/orderService';
 import * as UserRepository from 'fakemarket-common/repositories/userRepository';
 import { log } from 'node:console';
 
@@ -39,7 +40,7 @@ async function generateOrdersFromUserHoldings(robotUser: Models.User, holdings: 
                 }
 
                 try {
-                    await OrderRepository.createBuyOrder(robotUser.id, holding.resourceId, decision.quantity, decision.price);
+                    await OrderService.createBuyOrderAndReserveMoney(robotUser.id, holding.resourceId, decision.quantity, decision.price);
                 } catch (error: any) {
                     log(`Failed to create buy order for user ${robotUser.id} on resource ${holding.resourceId}: ${error.message}`);
                     if (!(error instanceof Errors.InsufficientMoneyError)) {
@@ -55,7 +56,7 @@ async function generateOrdersFromUserHoldings(robotUser: Models.User, holdings: 
                 }
 
                 try {
-                    await OrderRepository.createSellOrder(robotUser.id, holding.resourceId, decision.quantity, decision.price);
+                    await OrderService.createSellOrderAndReserveHolding(robotUser.id, holding.resourceId, decision.quantity, decision.price);
                 } catch (error: any) {
                     log(`Failed to create sell order for user ${robotUser.id} on resource ${holding.resourceId}: ${error.message}`);
                     if (!(error instanceof Errors.InsufficientResourcesError)) {

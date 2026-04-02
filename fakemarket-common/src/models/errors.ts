@@ -18,3 +18,10 @@ export class MoneyHoldingNotFoundError extends Error {
         this.name = 'MoneyHoldingNotFoundError';
     }
 }
+
+export class ResourceHoldingNotFoundError extends Error {
+    constructor(message = 'User does not have a holding for the requested resource.') {
+        super(message);
+        this.name = 'ResourceHoldingNotFoundError';
+    }
+}
