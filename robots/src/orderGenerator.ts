@@ -85,7 +85,7 @@ async function generateOrdersFromInterval(robotUsers: Models.User[], ms: number)
 
     setTimeout(() => {
         generateOrdersFromInterval(robotUsers, ms);
-    }, 5000);
+    }, 500);
 }
 
 export async function generateOrders() {
