@@ -19,26 +19,31 @@ async function findSellOrderToFulfillBuyOrder(dbTransaction: DbTransaction, buyO
   return buyOrder;
 }
 
-async function processOrders(): Promise<void> {
+async function processOrders(): Promise<boolean> {
     return DatabaseService.executeTransaction(async (dbTransaction: DbTransaction) => {
       const buyOrder = await OrderRepository.getTheNextBuyOrderToProcess(dbTransaction);
 
       if(!buyOrder) {
         console.log("No buying orders to process!");
-        return
+        return false;
       }
 
       await findSellOrderToFulfillBuyOrder(dbTransaction, buyOrder);
       
       console.log(`Finished processing buy order ${buyOrder.id}`);
-      
+      return true;
         
   })
 }
 
 async function start(): Promise<void> {
-  await processOrders();
-  start();
+  const hasMoreOrdersToProcess = await processOrders();
+  if(hasMoreOrdersToProcess) {
+    start();
+  } else{
+    console.log("No more orders to process, waiting for new orders...");
+    setTimeout(start, 5000);
+  }
 }
 
 start()
