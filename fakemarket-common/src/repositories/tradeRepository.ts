@@ -1,4 +1,5 @@
-import { type DbTransaction } from '../db/client';
+import { sql, eq, desc, asc } from 'drizzle-orm';
+import { type DbTransaction, db } from '../db/client';
 import { trades } from '../db/schema';
 import type * as Models from '../models/models';
 
@@ -22,4 +23,19 @@ export async function add(
         .returning();
 
     return trade;
+}
+
+export async function getLatest(
+    resourceId: string,
+    quantity: number = 5,
+    sortDirection: 'asc' | 'desc' = 'desc',
+): Promise<Models.Trade[]> {
+    return await db
+        .select()
+        .from(trades)
+        .where(
+            eq(trades.resourceId, resourceId)
+        )
+        .orderBy(sortDirection === 'desc' ? desc(trades.created) : asc(trades.created))
+        .limit(quantity);
 }

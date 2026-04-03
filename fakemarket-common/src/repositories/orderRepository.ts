@@ -75,31 +75,6 @@ export async function get(
         .limit(quantity);
 }
 
-export async function getLatest(
-    resourceId: string,
-    orderType: Constants.OrderType,
-    orderStatus: Constants.OrderStatus,
-    quantity: number = 5,
-    sortDirection: 'asc' | 'desc' = 'asc',
-): Promise<{ amount: number, price: number }[]> {
-    return await db
-        .select({
-            amount: sql<number>`sum(orders.quantity)`,
-            price: orders.price,
-        })
-        .from(orders)
-        .where(
-            and(
-                eq(orders.resourceId, resourceId),
-                eq(orders.type, orderType),
-                eq(orders.status, orderStatus),
-            ),
-        )
-        .groupBy(orders.price)
-        .orderBy(sortDirection === 'desc' ? desc(orders.price) : asc(orders.price))
-        .limit(quantity);
-}
-
 export async function createSellOrder(
     userId: string,
     resourceId: string,

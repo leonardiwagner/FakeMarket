@@ -1,11 +1,12 @@
 import type * as Models from 'fakemarket-common/models/models';
 
+
 export function getRobotOrderDecision(
     userMoney: number,
     userHoldingsQuantity: number,
     latestOrdersToBuy: Models.Order[],
     latestOrdersToSell: Models.Order[],
-    latestSoldPrices: { amount: number, price: number }[],
+    latestSoldTrades: Models.Trade[],
 ): { isBuy: boolean, price: number, quantity: number } {
     const bestBuyPrice = latestOrdersToBuy.reduce((highest, order) => Math.max(highest, order.price), 0);
     const bestSellPrice = latestOrdersToSell.reduce((lowest, order) => {
@@ -15,9 +16,23 @@ export function getRobotOrderDecision(
 
         return Math.min(lowest, order.price);
     }, 0);
-    const lastSoldPrice = latestSoldPrices.length > 0
-        ? latestSoldPrices[latestSoldPrices.length - 1].price
+    const lastSoldPrice = latestSoldTrades.length > 0
+        ? latestSoldTrades[latestSoldTrades.length - 1].price
         : 0;
+    const soldTradesTrend = (() => {
+        if (latestSoldTrades.length < 2) {
+            return 0;
+        }
+
+        let totalRelativeChange = 0;
+
+        for (let index = 1; index < latestSoldTrades.length; index++) {
+            const previousPrice = Math.max(1, latestSoldTrades[index - 1].price);
+            totalRelativeChange += (latestSoldTrades[index].price - previousPrice) / previousPrice;
+        }
+
+        return totalRelativeChange / (latestSoldTrades.length - 1);
+    })();
 
     const marketPrice = (() => {
         if (bestBuyPrice > 0 && bestSellPrice > 0) {
@@ -47,7 +62,9 @@ export function getRobotOrderDecision(
     }
 
     const buyBias = !canSell || (canBuy && userMoney > userHoldingsQuantity * marketPrice);
-    const isBuy = canBuy && (!canSell || Math.random() < (buyBias ? 0.65 : 0.35));
+    const trendBias = Math.max(-0.2, Math.min(0.2, soldTradesTrend * 4));
+    const buyProbability = Math.max(0.05, Math.min(0.95, (buyBias ? 0.65 : 0.35) + trendBias));
+    const isBuy = canBuy && (!canSell || Math.random() < buyProbability);
 
     if (isBuy) {
         const priceAnchor = bestSellPrice > 0 ? bestSellPrice : marketPrice;

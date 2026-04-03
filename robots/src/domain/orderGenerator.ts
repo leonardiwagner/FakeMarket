@@ -4,6 +4,7 @@ import * as Errors from 'fakemarket-common/models/errors';
 import type * as Models from 'fakemarket-common/models/models';
 import * as HoldingsRepository from 'fakemarket-common/repositories/holdingsRepository';
 import * as OrderRepository from 'fakemarket-common/repositories/orderRepository';
+import * as TradeRepository from 'fakemarket-common/repositories/tradeRepository';
 import * as OrderService from 'fakemarket-common/services/orderService';
 import { log } from 'node:console';
 
@@ -19,7 +20,7 @@ async function getUserHoldingsForResource(userId: string, resourceId: string): P
 async function generateOrdersFromUserHoldings(robotUser: Models.User, holding: Models.Holding) : Promise<Models.Order> {
     const latestOrdersToBuy = await OrderRepository.get({ resourceId: holding.resourceId, orderType: Constants.OrderType.BUY, orderStatus: Constants.OrderStatus.OPEN });
     const latestOrdersToSell = await OrderRepository.get({ resourceId: holding.resourceId, orderType: Constants.OrderType.SELL, orderStatus: Constants.OrderStatus.OPEN });
-    const latestSoldPrices = await OrderRepository.getLatest(holding.resourceId, Constants.OrderType.BUY, Constants.OrderStatus.OPEN);
+    const latestSoldTrades = await TradeRepository.getLatest(holding.resourceId, 10);
     const userHoldingsQuantity = await getUserHoldingsForResource(robotUser.id, holding.resourceId);
     const userMoney = await HoldingsRepository.getUserMoney(robotUser.id);
     
@@ -28,7 +29,7 @@ async function generateOrdersFromUserHoldings(robotUser: Models.User, holding: M
         userHoldingsQuantity,
         latestOrdersToBuy,
         latestOrdersToSell,
-        latestSoldPrices,
+        latestSoldTrades,
     );
 
     if(decision.isBuy){

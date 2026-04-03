@@ -38,6 +38,14 @@ const CHART_COLORS = [
 
 const MAX_BOOK_ROWS = 5;
 const MAX_LOG_ROWS = 5;
+const MAX_CHART_POINTS = 10;
+const CHART_WINDOW_MINUTES = 10;
+
+type ChartPoint = {
+    x: number;
+    y: number;
+    tradeCount: number;
+};
 
 function toMinuteTimestamp(value: string) {
     const date = new Date(value);
@@ -82,9 +90,9 @@ export function MarketPage() {
 
     const { snapshot, status, error, connectionStatus } = useAppSelector((state) => state.market);
 
-    const chartSeries = new Map<string, { label: string; borderColor: string; backgroundColor: string; data: Array<{ x: number; y: number }> }>();
+    const chartSeries = new Map<string, { label: string; borderColor: string; backgroundColor: string; data: ChartPoint[] }>();
     const minuteBuckets = new Map<string, { resourceId: string; resourceName: string; minuteTimestamp: number; totalPrice: number; tradeCount: number }>();
-
+    const chartWindowStart = Date.now() - (CHART_WINDOW_MINUTES * 60 * 1000);
     snapshot?.trades.forEach((trade) => {
         const minuteTimestamp = toMinuteTimestamp(trade.created);
         const bucketKey = `${trade.resourceId}:${minuteTimestamp}`;
@@ -104,9 +112,29 @@ export function MarketPage() {
         }
     });
 
-    Array.from(minuteBuckets.values())
-        .sort((left, right) => left.minuteTimestamp - right.minuteTimestamp)
-        .forEach((bucket) => {
+    const bucketsByResourceId = new Map<string, Array<{ resourceId: string; resourceName: string; minuteTimestamp: number; totalPrice: number; tradeCount: number }>>();
+
+    Array.from(minuteBuckets.values()).forEach((bucket) => {
+        const resourceBuckets = bucketsByResourceId.get(bucket.resourceId) ?? [];
+        resourceBuckets.push(bucket);
+        bucketsByResourceId.set(bucket.resourceId, resourceBuckets);
+    });
+
+    Array.from(bucketsByResourceId.entries()).forEach(([, resourceBuckets]) => {
+        const sortedBuckets = resourceBuckets
+            .sort((left, right) => left.minuteTimestamp - right.minuteTimestamp);
+
+        const bucketsInWindow = sortedBuckets.filter((bucket) => bucket.minuteTimestamp >= chartWindowStart);
+        const backfillCount = Math.max(0, MAX_CHART_POINTS - bucketsInWindow.length);
+        const backfillBuckets = backfillCount > 0
+            ? sortedBuckets
+                .filter((bucket) => bucket.minuteTimestamp < chartWindowStart)
+                .slice(-backfillCount)
+            : [];
+
+        [...backfillBuckets, ...bucketsInWindow]
+            .slice(-MAX_CHART_POINTS)
+            .forEach((bucket) => {
             if (!chartSeries.has(bucket.resourceId)) {
                 const color = CHART_COLORS[chartSeries.size % CHART_COLORS.length];
                 chartSeries.set(bucket.resourceId, {
@@ -120,8 +148,10 @@ export function MarketPage() {
             chartSeries.get(bucket.resourceId)!.data.push({
                 x: bucket.minuteTimestamp,
                 y: bucket.totalPrice / bucket.tradeCount,
+                tradeCount: bucket.tradeCount,
             });
         });
+    });
 
     const topSellOrders = groupOrdersByPrice(snapshot?.sellOrders ?? [], 'sell');
     const topBuyOrders = groupOrdersByPrice(snapshot?.buyOrders ?? [], 'buy');
@@ -190,6 +220,14 @@ export function MarketPage() {
                                         position: 'bottom',
                                         labels: {
                                             color: '#dbe7f2',
+                                        },
+                                    },
+                                    tooltip: {
+                                        callbacks: {
+                                            label: (context) => {
+                                                const point = context.raw as ChartPoint;
+                                                return `${context.dataset.label}: ${formatCurrency(point.y)} (${point.tradeCount} trades)`;
+                                            },
                                         },
                                     },
                                 },
