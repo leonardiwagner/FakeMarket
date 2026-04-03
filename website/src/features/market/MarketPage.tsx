@@ -233,8 +233,6 @@ export function MarketPage() {
         });
     });
 
-    const topSellOrders = groupOrdersByPrice(snapshot?.sellOrders ?? [], 'sell');
-    const topBuyOrders = groupOrdersByPrice(snapshot?.buyOrders ?? [], 'buy');
     const latestLogEntries = (snapshot?.log ?? []).slice(0, MAX_LOG_ROWS);
     const resourceTrends = getResourceTrendById(snapshot?.trades ?? []);
     const tradeResources = snapshot?.tradeResources ?? [];
@@ -245,6 +243,14 @@ export function MarketPage() {
     const priceValue = Math.max(0, Number(tradePrice) || 0);
     const computedTotalPrice = quantityValue * priceValue;
     const computedRemainingResources = Math.max(0, (selectedTradeResource?.adminAvailableQuantity ?? 0) - quantityValue);
+    const selectedSellOrders = groupOrdersByPrice(
+        (snapshot?.sellOrders ?? []).filter((order) => order.resourceId === selectedTradeResource?.resourceId),
+        'sell',
+    );
+    const selectedBuyOrders = groupOrdersByPrice(
+        (snapshot?.buyOrders ?? []).filter((order) => order.resourceId === selectedTradeResource?.resourceId),
+        'buy',
+    );
 
     useEffect(() => {
         if (!selectedTradeResourceId && tradeResources.length > 0) {
@@ -474,77 +480,133 @@ export function MarketPage() {
                         </div>
                     </div>
 
-                    <form className="trade-form" onSubmit={handleTradeSubmit}>
-                        <label className="trade-field">
-                            <span className="trade-field-label">Order type</span>
-                            <select
-                                value={tradeSide}
-                                onChange={(event) => setTradeSide(event.target.value as TradeSide)}
-                            >
-                                <option value="buy">Buy</option>
-                                <option value="sell">Sell</option>
-                            </select>
-                        </label>
+                    <div className="trade-workbench">
+                        <form className="trade-form trade-form-card" onSubmit={handleTradeSubmit}>
+                            <label className="trade-field">
+                                <span className="trade-field-label">Order type</span>
+                                <select
+                                    value={tradeSide}
+                                    onChange={(event) => setTradeSide(event.target.value as TradeSide)}
+                                >
+                                    <option value="buy">Buy</option>
+                                    <option value="sell">Sell</option>
+                                </select>
+                            </label>
 
-                        <label className="trade-field">
-                            <span className="trade-field-label">Resource</span>
-                            <select
-                                value={selectedTradeResource?.resourceId ?? ''}
-                                onChange={(event) => setSelectedTradeResourceId(event.target.value)}
-                            >
-                                {tradeResources.map((resource) => (
-                                    <option key={resource.resourceId} value={resource.resourceId}>
-                                        {resource.resourceName}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
+                            <label className="trade-field">
+                                <span className="trade-field-label">Resource</span>
+                                <select
+                                    value={selectedTradeResource?.resourceId ?? ''}
+                                    onChange={(event) => setSelectedTradeResourceId(event.target.value)}
+                                >
+                                    {tradeResources.map((resource) => (
+                                        <option key={resource.resourceId} value={resource.resourceId}>
+                                            {resource.resourceName}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
 
-                        <label className="trade-field">
-                            <span className="trade-field-label">Quantity</span>
-                            <input
-                                type="number"
-                                min="1"
-                                step="1"
-                                value={tradeQuantity}
-                                onChange={(event) => setTradeQuantity(event.target.value)}
-                            />
-                        </label>
+                            <label className="trade-field">
+                                <span className="trade-field-label">Quantity</span>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    step="1"
+                                    value={tradeQuantity}
+                                    onChange={(event) => setTradeQuantity(event.target.value)}
+                                />
+                            </label>
 
-                        <label className="trade-field">
-                            <span className="trade-field-label">Price</span>
-                            <input
-                                type="number"
-                                min="1"
-                                step="1"
-                                value={tradePrice}
-                                onChange={(event) => setTradePrice(event.target.value)}
-                            />
-                        </label>
+                            <label className="trade-field">
+                                <span className="trade-field-label">Price</span>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    step="1"
+                                    value={tradePrice}
+                                    onChange={(event) => setTradePrice(event.target.value)}
+                                />
+                            </label>
 
-                        <label className="trade-field trade-field-readonly">
-                            <span className="trade-field-label">{tradeSide === 'buy' ? 'Total price' : 'Remaining resources'}</span>
-                            <input
-                                type="text"
-                                readOnly
-                                value={tradeSide === 'buy'
-                                    ? formatCurrency(computedTotalPrice)
-                                    : String(computedRemainingResources)}
-                            />
-                        </label>
+                            <label className="trade-field trade-field-readonly">
+                                <span className="trade-field-label">{tradeSide === 'buy' ? 'Total price' : 'Remaining resources'}</span>
+                                <input
+                                    type="text"
+                                    readOnly
+                                    value={tradeSide === 'buy'
+                                        ? formatCurrency(computedTotalPrice)
+                                        : String(computedRemainingResources)}
+                                />
+                            </label>
 
-                        <button type="submit" className="trade-submit-button" disabled={tradeSubmitStatus === 'submitting'}>
-                            {tradeSubmitStatus === 'submitting'
-                                ? 'Placing order...'
-                                : `Place ${tradeSide} order`}
-                        </button>
-                    </form>
+                            <button type="submit" className="trade-submit-button" disabled={tradeSubmitStatus === 'submitting'}>
+                                {tradeSubmitStatus === 'submitting'
+                                    ? 'Placing order...'
+                                    : `Place ${tradeSide} order`}
+                            </button>
+                        </form>
 
-                    {tradeMessage ? (
-                        <p className={tradeSubmitStatus === 'error' ? 'error-banner' : 'trade-success-banner'}>
-                            {tradeMessage}
-                        </p>
-                    ) : null}
+                        <div className="trade-books">
+                            <article className="trade-book-card">
+                                <div className="trade-book-header">
+                                    <p className="panel-kicker">Sell side</p>
+                                    <h3>Offers for {selectedTradeResource?.resourceName ?? 'resource'}</h3>
+                                </div>
+                                {!selectedSellOrders.length ? (
+                                    <p className="placeholder">No current sell orders for this resource.</p>
+                                ) : (
+                                    <table className="market-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Quantity</th>
+                                                <th>Price</th>
+                                                <th>Latest</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {selectedSellOrders.map((order) => (
+                                                <tr key={order.id}>
+                                                    <td>{order.quantity}</td>
+                                                    <td>{formatCurrency(order.price)}</td>
+                                                    <td>{formatDateTime(order.created)}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                )}
+                            </article>
+
+                            <article className="trade-book-card">
+                                <div className="trade-book-header">
+                                    <p className="panel-kicker">Buy side</p>
+                                    <h3>Bids for {selectedTradeResource?.resourceName ?? 'resource'}</h3>
+                                </div>
+                                {!selectedBuyOrders.length ? (
+                                    <p className="placeholder">No current buy orders for this resource.</p>
+                                ) : (
+                                    <table className="market-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Quantity</th>
+                                                <th>Price</th>
+                                                <th>Latest</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {selectedBuyOrders.map((order) => (
+                                                <tr key={order.id}>
+                                                    <td>{order.quantity}</td>
+                                                    <td>{formatCurrency(order.price)}</td>
+                                                    <td>{formatDateTime(order.created)}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                )}
+                            </article>
+                        </div>
+                    </div>
                 </section>
             ) : null}
 
@@ -618,68 +680,6 @@ export function MarketPage() {
                         />
                     </div>
                 )}
-            </section>
-
-            <section className="table-grid">
-                <article className="panel">
-                    <div className="panel-header">
-                        <div>
-                            <p className="panel-kicker">Sell side</p>
-                            <h2>Latest listings to sell</h2>
-                        </div>
-                    </div>
-
-                    <table className="market-table">
-                        <thead>
-                            <tr>
-                                <th>Resource</th>
-                                <th>Quantity</th>
-                                <th>Price</th>
-                                <th>Latest</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {topSellOrders.map((order) => (
-                                <tr key={order.id}>
-                                    <td>{order.resourceName}</td>
-                                    <td>{order.quantity}</td>
-                                    <td>{formatCurrency(order.price)}</td>
-                                    <td>{formatDateTime(order.created)}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </article>
-
-                <article className="panel">
-                    <div className="panel-header">
-                        <div>
-                            <p className="panel-kicker">Buy side</p>
-                            <h2>Latest listings to buy</h2>
-                        </div>
-                    </div>
-
-                    <table className="market-table">
-                        <thead>
-                            <tr>
-                                <th>Resource</th>
-                                <th>Quantity</th>
-                                <th>Price</th>
-                                <th>Latest</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {topBuyOrders.map((order) => (
-                                <tr key={order.id}>
-                                    <td>{order.resourceName}</td>
-                                    <td>{order.quantity}</td>
-                                    <td>{formatCurrency(order.price)}</td>
-                                    <td>{formatDateTime(order.created)}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </article>
             </section>
 
             <section className="panel">

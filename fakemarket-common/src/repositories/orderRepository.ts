@@ -32,7 +32,7 @@ export async function add(
 export async function update(
     tx: DbTransaction,
     orderId: string,
-    changes: Partial<Omit<Models.Order, 'id' | 'userId' | 'resourceId' | 'type' | 'created'>>,
+    changes: Partial<Omit<Models.Order, 'id' | 'userId' | 'resourceId' | 'type' | 'processed'>>,
 ): Promise<Models.Order | undefined> {
     const [order] = await tx
         .update(orders)
@@ -125,7 +125,7 @@ export async function createBuyOrder(
 }
 
 
-export async function getTheNextBuyOrderToProcess(
+export async function getTheNextOrderToProcess(
     dbTransaction: DbTransaction
 ): Promise<Models.Order | undefined> {
     const [nextOrder] = await dbTransaction
@@ -137,7 +137,6 @@ export async function getTheNextBuyOrderToProcess(
                     eq(orders.status, Constants.OrderStatus.OPEN),
                     eq(orders.status, Constants.OrderStatus.PARTIAL)
                 ),
-                eq(orders.type, Constants.OrderType.BUY),
             ),
         )
         // oldest order without processing, or oldest processed order, to ensure fairness in order processing
@@ -151,39 +150,7 @@ export async function getTheNextBuyOrderToProcess(
     return nextOrder;
 }
 
-export async function getTheNextSellOrderToProcess(
-    dbTransaction: DbTransaction,
-    resourceId: string,
-    maxPrice: number,
-    requiredQuantity: number,
-): Promise<Models.Order | undefined> {
-    const [nextOrder] = await dbTransaction
-        .select()
-        .from(orders)
-        .where(
-            and(
-                eq(orders.type, Constants.OrderType.SELL),
-                eq(orders.resourceId, resourceId),
-                or(
-                    eq(orders.status, Constants.OrderStatus.OPEN),
-                    eq(orders.status, Constants.OrderStatus.PARTIAL),
-                ),
-                lte(orders.price, maxPrice),
-                gte(orders.quantity, requiredQuantity),
-            ),
-        )
-        .orderBy(
-            asc(orders.price),
-            desc(orders.quantity),
-            desc(orders.created),
-        )
-        .limit(1)
-        .for('update', { skipLocked: true });
-
-    return nextOrder;
-}
-
-export async function getBestLockedMatchingSellOrder(
+export async function getMatchingSellOrderFromBuyOrder(
     tx: DbTransaction,
     buyOrder: Models.Order,
 ): Promise<Models.Order | undefined> {
@@ -194,17 +161,22 @@ export async function getBestLockedMatchingSellOrder(
             and(
                 eq(orders.resourceId, buyOrder.resourceId),
                 eq(orders.type, Constants.OrderType.SELL),
-                eq(orders.status, Constants.OrderStatus.OPEN),
+                or(
+                    eq(orders.status, Constants.OrderStatus.OPEN),
+                    eq(orders.status, Constants.OrderStatus.PARTIAL),
+                ),
+                gte(orders.quantity, buyOrder.quantity),
                 lte(orders.price, buyOrder.price),
             ),
         )
-        .orderBy(asc(orders.price), asc(orders.created))
+        .orderBy(asc(orders.price), desc(orders.created))
         .limit(1);
 
     return matchingOrder;
 }
 
-export async function getBestLockedMatchingBuyOrder(
+
+export async function getMatchingBuyOrderFromSellOrder(
     tx: DbTransaction,
     sellOrder: Models.Order,
 ): Promise<Models.Order | undefined> {
@@ -215,12 +187,17 @@ export async function getBestLockedMatchingBuyOrder(
             and(
                 eq(orders.resourceId, sellOrder.resourceId),
                 eq(orders.type, Constants.OrderType.BUY),
-                eq(orders.status, Constants.OrderStatus.OPEN),
+                or(
+                    eq(orders.status, Constants.OrderStatus.OPEN),
+                    eq(orders.status, Constants.OrderStatus.PARTIAL),
+                ),
+                gte(orders.quantity, sellOrder.quantity),
                 gte(orders.price, sellOrder.price),
             ),
         )
-        .orderBy(desc(orders.price), asc(orders.created))
+        .orderBy(desc(orders.price), desc(orders.created))
         .limit(1);
 
     return matchingOrder;
 }
+

@@ -342,6 +342,36 @@ table {
     align-items: start;
 }
 
+.trade-workbench {
+    display: grid;
+    grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+    gap: 1rem;
+    align-items: start;
+}
+
+.trade-form-card,
+.trade-book-card {
+    padding: 1rem 1.1rem;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.trade-books {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.trade-book-header {
+    margin-bottom: 0.75rem;
+}
+
+.trade-book-header h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-family: Georgia, "Times New Roman", serif;
+}
+
 .trade-field {
     display: grid;
     gap: 0.45rem;
@@ -483,6 +513,8 @@ table {
     }
 
     .trade-form,
+    .trade-workbench,
+    .trade-books,
     .table-grid {
         grid-template-columns: 1fr;
     }

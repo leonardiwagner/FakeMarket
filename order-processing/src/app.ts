@@ -2,35 +2,47 @@ import * as OrderRepository from 'fakemarket-common/repositories/orderRepository
 import * as TradeRepository from 'fakemarket-common/repositories/tradeRepository';
 import * as HoldingsRepository from 'fakemarket-common/repositories/holdingsRepository';
 import * as DatabaseService from 'fakemarket-common/services/databaseService';
+import * as Models from 'fakemarket-common/models/models';
+import * as Constants from 'fakemarket-common/models/constants';
 import { DbTransaction } from 'fakemarket-common';
 import { processOrder } from './services/processOrderService';
 
-async function findSellOrderToFulfillBuyOrder(dbTransaction: DbTransaction, buyOrder: OrderRepository.Order): Promise<OrderRepository.Order> {
-  if(buyOrder.quantity > 0) {
-    const sellOrder = await OrderRepository.getTheNextSellOrderToProcess(dbTransaction, buyOrder.resourceId, buyOrder.price, buyOrder.quantity);
-    const updatedBuyOrder = await processOrder(dbTransaction, buyOrder, sellOrder);
-    if(updatedBuyOrder){
-      console.log(`Done a trade for order: ${buyOrder.id}`);
-      return await findSellOrderToFulfillBuyOrder(dbTransaction, updatedBuyOrder!);
-    }
-    
+async function fullfillOrder(dbTransaction: DbTransaction, order: Models.Order): Promise<Models.Order | undefined> {
+  if(order.quantity <= 0){
+    return
   }
 
-  return buyOrder;
+  if(order.type === Constants.OrderType.BUY){
+    const sellOrder = await OrderRepository.getMatchingSellOrderFromBuyOrder(dbTransaction, order);
+    if(!sellOrder) {
+      await OrderRepository.update(dbTransaction, order.id, { processed: new Date().toISOString() })
+      console.log("No sell order matching the buy order")
+      return
+    }
+    return await processOrder(dbTransaction, order, sellOrder);
+  } else {
+    const buyOrder = await OrderRepository.getMatchingBuyOrderFromSellOrder(dbTransaction, order);
+    if(!buyOrder) {
+      console.log("No buy order matching the sell order")
+      await OrderRepository.update(dbTransaction, order.id, { processed: new Date().toISOString() })
+      return
+    }
+    return await processOrder(dbTransaction, buyOrder, order);
+  }
 }
 
 async function processOrders(): Promise<boolean> {
     return DatabaseService.executeTransaction(async (dbTransaction: DbTransaction) => {
-      const buyOrder = await OrderRepository.getTheNextBuyOrderToProcess(dbTransaction);
+      const order = await OrderRepository.getTheNextOrderToProcess(dbTransaction);
 
-      if(!buyOrder) {
-        console.log("No buying orders to process!");
+      if(!order) {
+        console.log("No orders to process!");
         return false;
       }
 
-      await findSellOrderToFulfillBuyOrder(dbTransaction, buyOrder);
+      await fullfillOrder(dbTransaction, order);
       
-      console.log(`Finished processing buy order ${buyOrder.id}`);
+      console.log(`Finished processing order ${order.id}`);
       return true;
         
   })
