@@ -52,7 +52,8 @@ create table orders (
   has_price_limit boolean not null default true,
 
   created timestamptz not null default now(),
-  processed timestamptz
+  processed timestamptz,
+  deleted timestamptz
 );
 
 -- initial seed of resources via sell orders

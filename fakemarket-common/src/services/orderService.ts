@@ -1,5 +1,5 @@
 import { and, eq } from 'drizzle-orm';
-import { holdings } from '../db/schema';
+import { holdings, orders } from '../db/schema';
 import * as Constants from '../models/constants';
 import * as Errors from '../models/errors';
 import type * as Models from '../models/models';
@@ -86,5 +86,56 @@ export async function createBuyOrderAndReserveMoney(
             price,
             quantityToBuy,
         );
+    });
+}
+
+export async function cancelOrder(orderId: string): Promise<Models.Order> {
+    return await executeTransaction(async (tx) => {
+        const [order] = await tx
+            .select()
+            .from(orders)
+            .where(eq(orders.id, orderId))
+            .limit(1)
+            .for('update');
+
+        if (!order) {
+            throw new Error('Order not found.');
+        }
+
+        if (order.type === Constants.OrderType.BUY) {
+            const reservedMoneyToRelease = order.quantity * order.price;
+            await HoldingsRepository.updateHoldingQuantity(
+                tx,
+                order.userId,
+                Constants.RESOURCE_ID_USD,
+                reservedMoneyToRelease,
+                -reservedMoneyToRelease,
+            );
+        } else {
+            await HoldingsRepository.updateHoldingQuantity(
+                tx,
+                order.userId,
+                order.resourceId,
+                order.quantity,
+                -order.quantity,
+            );
+        }
+
+        const deletedAt = new Date().toISOString();
+
+        const [cancelledOrder] = await tx
+            .update(orders)
+            .set({
+                status: Constants.OrderStatus.CANCELLED,
+                deleted: deletedAt,
+            })
+            .where(eq(orders.id, orderId))
+            .returning();
+
+        if(!cancelledOrder) {
+            throw new Errors.OrderToCancelNotFound();
+        }
+
+        return cancelledOrder;
     });
 }

@@ -25,3 +25,10 @@ export class ResourceHoldingNotFoundError extends Error {
         this.name = 'ResourceHoldingNotFoundError';
     }
 }
+
+export class OrderToCancelNotFound extends Error {
+    constructor(message = 'Order to cancel not found.') {
+        super(message);
+        this.name = 'OrderToCancelNotFound';
+    }
+}

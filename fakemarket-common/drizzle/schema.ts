@@ -27,6 +27,7 @@ export const orders = pgTable("orders", {
 	hasPriceLimit: boolean("has_price_limit").default(true).notNull(),
 	created: timestamp({ withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 	processed: timestamp({ withTimezone: true, mode: 'string' }),
+	deleted: timestamp({ withTimezone: true, mode: 'string' }),
 }, (table) => [
 	foreignKey({
 			columns: [table.userId],
@@ -78,9 +79,9 @@ export const holdings = pgTable("holdings", {
 	userId: uuid("user_id").notNull(),
 	resourceId: uuid("resource_id").notNull(),
 	quantity: integer().default(0).notNull(),
+	quantityReserved: integer("quantity_reserved").default(0).notNull(),
 	created: timestamp({ withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 	updated: timestamp({ withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-	quantityReserved: integer("quantity_reserved").default(0).notNull(),
 }, (table) => [
 	foreignKey({
 			columns: [table.userId],

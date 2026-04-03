@@ -1,11 +1,10 @@
-import * as OrderDecision from './domain/orderDecision';
+import * as OrderDecision from './orderDecision';
 import * as Constants from 'fakemarket-common/models/constants';
 import * as Errors from 'fakemarket-common/models/errors';
 import type * as Models from 'fakemarket-common/models/models';
 import * as HoldingsRepository from 'fakemarket-common/repositories/holdingsRepository';
 import * as OrderRepository from 'fakemarket-common/repositories/orderRepository';
 import * as OrderService from 'fakemarket-common/services/orderService';
-import * as UserRepository from 'fakemarket-common/repositories/userRepository';
 import { log } from 'node:console';
 
 async function getUserHoldingsForResource(userId: string, resourceId: string): Promise<number> {
@@ -90,7 +89,7 @@ async function generateOrdersFromInterval(robotUsers: Models.User[], ms: number)
 
 export async function generateOrders() {
     // TODO get the robot users and generate orders for them
-    const robotUsers = await UserRepository.getUsersByType(Constants.UserType.ROBOT);
+   
     
     await generateOrdersFromInterval(robotUsers, 5000);
 }

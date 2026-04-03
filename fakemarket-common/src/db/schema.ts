@@ -31,6 +31,7 @@ export const orders = pgTable('orders', {
     hasPriceLimit: boolean('has_price_limit').default(true).notNull(),
     created: timestamp({ withTimezone: true, mode: 'string' }).defaultNow().notNull(),
     processed: timestamp({ withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+    deleted: timestamp({ withTimezone: true, mode: 'string' }),
 }, (table) => [
     foreignKey({
         columns: [table.userId],

@@ -1,4 +1,13 @@
-import * as OrderGenerator from './orderGenerator';
+import * as UserRepository from 'fakemarket-common/repositories/userRepository';
+import * as Constants from 'fakemarket-common/models/constants';
 
 
-OrderGenerator.generateOrders();
+
+async function start() {
+     const robotUsers = await UserRepository.getUsersByType(Constants.UserType.ROBOT);
+
+
+}
+
+
+start()
