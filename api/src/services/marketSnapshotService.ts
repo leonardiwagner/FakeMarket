@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, or } from 'drizzle-orm';
 import { db } from 'fakemarket-common/db/client';
-import { orders, resources, trades, users } from 'fakemarket-common/db/schema';
+import { holdings, orders, resources, trades, users } from 'fakemarket-common/db/schema';
 import * as Constants from 'fakemarket-common/models/constants';
 import type {
     MarketLogEntry,
@@ -8,14 +8,17 @@ import type {
     MarketResourceSummary,
     MarketSnapshot,
     MarketTradePoint,
+    MarketUserSummary,
 } from '../types/market';
 
 const DEFAULT_TRADE_LIMIT = 200;
 const DEFAULT_ORDER_LIMIT = 200;
 const DEFAULT_LOG_LIMIT = 40;
+const ADMIN_EMAIL = 'admin@fakemarket.com';
 
 export async function getMarketSnapshot(resourceId?: string): Promise<MarketSnapshot> {
-    const [resourceRows, recentTrades, sellOrders, buyOrders, log] = await Promise.all([
+    const [adminUser, resourceRows, recentTrades, sellOrders, buyOrders, log] = await Promise.all([
+        getAdminUserSummary(),
         getResources(resourceId),
         getRecentTrades(resourceId, DEFAULT_TRADE_LIMIT),
         getLatestOrders(Constants.OrderType.SELL, resourceId, DEFAULT_ORDER_LIMIT),
@@ -39,6 +42,7 @@ export async function getMarketSnapshot(resourceId?: string): Promise<MarketSnap
 
     return {
         generatedAt: new Date().toISOString(),
+        adminUser,
         resources: resourcesWithSummary,
         trades: [...recentTrades].reverse(),
         sellOrders,
@@ -56,6 +60,28 @@ async function getResources(resourceId?: string): Promise<Array<{ resourceId: st
         .from(resources)
         .where(resourceId ? eq(resources.id, resourceId) : undefined)
         .orderBy(asc(resources.name));
+}
+
+async function getAdminUserSummary(): Promise<MarketUserSummary> {
+    const [adminHolding] = await db
+        .select({
+            email: users.email,
+            money: holdings.quantity,
+            reservedMoney: holdings.quantityReserved,
+        })
+        .from(users)
+        .innerJoin(holdings, and(
+            eq(holdings.userId, users.id),
+            eq(holdings.resourceId, Constants.RESOURCE_ID_USD),
+        ))
+        .where(eq(users.email, ADMIN_EMAIL))
+        .limit(1);
+
+    if (!adminHolding) {
+        throw new Error(`Admin user ${ADMIN_EMAIL} not found.`);
+    }
+
+    return adminHolding;
 }
 
 async function getRecentTrades(resourceId: string | undefined, limit: number): Promise<MarketTradePoint[]> {

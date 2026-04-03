@@ -12,7 +12,7 @@ import {
 import { Line } from 'react-chartjs-2';
 import { useAppSelector } from '../../app/hooks';
 import { formatCurrency, formatDateTime } from '../../lib/format';
-import type { MarketOrderEntry } from './marketTypes';
+import type { MarketOrderEntry, MarketTradePoint } from './marketTypes';
 import { useMarketStream } from './useMarketStream';
 
 ChartJS.register(
@@ -45,6 +45,11 @@ type ChartPoint = {
     x: number;
     y: number;
     tradeCount: number;
+};
+
+type ResourceTrend = {
+    direction: 'up' | 'down' | 'flat';
+    percentChange: number;
 };
 
 function toMinuteTimestamp(value: string) {
@@ -85,10 +90,69 @@ function groupOrdersByPrice(orders: MarketOrderEntry[], side: 'sell' | 'buy') {
     return groupedList.slice(0, MAX_BOOK_ROWS);
 }
 
+function getAvatarDataUri(email: string) {
+    const initials = email.slice(0, 2).toUpperCase();
+    const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72">
+            <rect width="72" height="72" rx="20" fill="#f97316" />
+            <circle cx="36" cy="28" r="14" fill="#fed7aa" />
+            <path d="M18 62c4-11 14-17 18-17s14 6 18 17" fill="#fed7aa" />
+            <text x="36" y="66" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="#7c2d12">${initials}</text>
+        </svg>
+    `;
+
+    return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
+function getResourceTrendById(trades: MarketTradePoint[]) {
+    const latestTradesByResource = new Map<string, number[]>();
+
+    for (let index = trades.length - 1; index >= 0; index--) {
+        const trade = trades[index];
+        const prices = latestTradesByResource.get(trade.resourceId) ?? [];
+
+        if (prices.length < 2) {
+            prices.push(trade.price);
+            latestTradesByResource.set(trade.resourceId, prices);
+        }
+    }
+
+    const trends = new Map<string, ResourceTrend>();
+
+    latestTradesByResource.forEach((prices, resourceId) => {
+        if (prices.length < 2 || prices[1] === 0) {
+            trends.set(resourceId, { direction: 'flat', percentChange: 0 });
+            return;
+        }
+
+        const [latestPrice, previousPrice] = prices;
+        const percentChange = ((latestPrice - previousPrice) / previousPrice) * 100;
+
+        if (percentChange > 0) {
+            trends.set(resourceId, { direction: 'up', percentChange });
+            return;
+        }
+
+        if (percentChange < 0) {
+            trends.set(resourceId, { direction: 'down', percentChange });
+            return;
+        }
+
+        trends.set(resourceId, { direction: 'flat', percentChange: 0 });
+    });
+
+    return trends;
+}
+
+function formatPercentage(value: number) {
+    return `${Math.abs(value).toFixed(1)}%`;
+}
+
 export function MarketPage() {
     useMarketStream();
 
     const { snapshot, status, error, connectionStatus } = useAppSelector((state) => state.market);
+    const adminUser = snapshot?.adminUser;
 
     const chartSeries = new Map<string, { label: string; borderColor: string; backgroundColor: string; data: ChartPoint[] }>();
     const minuteBuckets = new Map<string, { resourceId: string; resourceName: string; minuteTimestamp: number; totalPrice: number; tradeCount: number }>();
@@ -156,19 +220,32 @@ export function MarketPage() {
     const topSellOrders = groupOrdersByPrice(snapshot?.sellOrders ?? [], 'sell');
     const topBuyOrders = groupOrdersByPrice(snapshot?.buyOrders ?? [], 'buy');
     const latestLogEntries = (snapshot?.log ?? []).slice(0, MAX_LOG_ROWS);
+    const resourceTrends = getResourceTrendById(snapshot?.trades ?? []);
 
     return (
         <main className="page-shell">
-            <section className="hero-card">
-                <div className="hero-copy">
-                    <p className="eyebrow">Public market board</p>
-                    <h1>FakeMarket live exchange</h1>
-                    <p className="hero-text">
-                        Real-time pricing, active listings, and the most recent completed trades across every resource in the system.
-                    </p>
+            <section className="user-bar">
+                <div className="user-profile">
+                    {adminUser ? <img className="user-avatar" src={getAvatarDataUri(adminUser.email)} alt={adminUser.email} /> : null}
+                    <div>
+                        <p className="eyebrow">Logged user</p>
+                        <h1 className="user-email">{adminUser?.email ?? 'admin@fakemarket.com'}</h1>
+                    </div>
                 </div>
 
-                <div className="status-panel">
+                <div className="user-meta">
+                    <div className="user-balance-card">
+                        <span className="user-balance-label">Money</span>
+                        <strong className="user-balance-value">
+                            {adminUser ? formatCurrency(adminUser.money) : '--'}
+                        </strong>
+                    </div>
+                    <div className="user-balance-card">
+                        <span className="user-balance-label">Reserved money</span>
+                        <strong className="user-balance-value">
+                            {adminUser ? formatCurrency(adminUser.reservedMoney) : '--'}
+                        </strong>
+                    </div>
                     <div className="status-chip">
                         <span className={`status-dot status-dot-${connectionStatus}`} />
                         <span>{connectionStatus}</span>
@@ -183,6 +260,18 @@ export function MarketPage() {
                         <strong className="stat-value">
                             {resource.latestTradePrice === null ? 'No trades yet' : formatCurrency(resource.latestTradePrice)}
                         </strong>
+                        {resource.latestTradePrice !== null ? (
+                            <span className={`stat-trend stat-trend-${resourceTrends.get(resource.resourceId)?.direction ?? 'flat'}`}>
+                                <span className="stat-trend-arrow">
+                                    {resourceTrends.get(resource.resourceId)?.direction === 'up'
+                                        ? '↑'
+                                        : resourceTrends.get(resource.resourceId)?.direction === 'down'
+                                            ? '↓'
+                                            : '→'}
+                                </span>
+                                <span>{formatPercentage(resourceTrends.get(resource.resourceId)?.percentChange ?? 0)}</span>
+                            </span>
+                        ) : null}
                     </article>
                 ))}
             </section>

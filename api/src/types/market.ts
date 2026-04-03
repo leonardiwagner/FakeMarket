@@ -33,8 +33,15 @@ export type MarketLogEntry = {
     created: string;
 };
 
+export type MarketUserSummary = {
+    email: string;
+    money: number;
+    reservedMoney: number;
+};
+
 export type MarketSnapshot = {
     generatedAt: string;
+    adminUser: MarketUserSummary;
     resources: MarketResourceSummary[];
     trades: MarketTradePoint[];
     sellOrders: MarketOrderEntry[];
