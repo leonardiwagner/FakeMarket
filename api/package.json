@@ -1,16 +1,29 @@
 {
   "name": "api",
   "version": "1.0.0",
-  "description": "",
-  "main": "app.js",
+  "private": true,
+  "description": "Read-only market API and websocket stream for the FakeMarket website.",
+  "main": "dist/app.js",
   "scripts": {
-    "prestart": "npm --prefix ../fakemarket-common run build",
-    "start": "node app.js"
+    "build": "tsc -p tsconfig.json",
+    "predev": "npm --prefix ../fakemarket-common run build",
+    "dev": "tsx watch src/app.ts",
+    "prestart": "npm --prefix ../fakemarket-common run build && npm run build",
+    "start": "node dist/app.js"
   },
   "dependencies": {
-    "fakemarket-common": "file:../fakemarket-common"
+    "cors": "^2.8.5",
+    "drizzle-orm": "^0.45.1",
+    "express": "^5.1.0",
+    "fakemarket-common": "file:../fakemarket-common",
+    "ws": "^8.18.3"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC"
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/node": "^25.4.0",
+    "@types/ws": "^8.18.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
 }

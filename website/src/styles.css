@@ -1,0 +1,243 @@
+:root {
+    color-scheme: dark;
+    font-family: "Avenir Next", "Segoe UI", sans-serif;
+    line-height: 1.5;
+    font-weight: 400;
+    color: #f4f8fb;
+    background:
+        radial-gradient(circle at top left, rgba(249, 115, 22, 0.24), transparent 30%),
+        radial-gradient(circle at top right, rgba(15, 118, 110, 0.26), transparent 28%),
+        linear-gradient(180deg, #08111d 0%, #102033 100%);
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
+    background: transparent;
+}
+
+button,
+input,
+table {
+    font: inherit;
+}
+
+#root {
+    min-height: 100vh;
+}
+
+.page-shell {
+    width: min(1360px, calc(100% - 2rem));
+    margin: 0 auto;
+    padding: 2rem 0 3rem;
+}
+
+.hero-card,
+.panel,
+.stat-card {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(6, 15, 26, 0.72);
+    backdrop-filter: blur(18px);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.28);
+}
+
+.hero-card {
+    display: flex;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 1.75rem;
+    border-radius: 28px;
+}
+
+.hero-copy h1,
+.panel-header h2 {
+    margin: 0;
+    font-family: Georgia, "Times New Roman", serif;
+}
+
+.hero-copy h1 {
+    font-size: clamp(2.2rem, 4vw, 4rem);
+    line-height: 0.95;
+    max-width: 12ch;
+}
+
+.eyebrow,
+.panel-kicker {
+    margin: 0 0 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-size: 0.72rem;
+    color: #8ea7bb;
+}
+
+.hero-text,
+.panel-meta,
+.placeholder {
+    color: #b8c8d6;
+}
+
+.status-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1rem;
+}
+
+.status-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.55rem 0.9rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    text-transform: capitalize;
+}
+
+.status-dot {
+    width: 0.65rem;
+    height: 0.65rem;
+    border-radius: 999px;
+}
+
+.status-dot-connected {
+    background: #10b981;
+}
+
+.status-dot-connecting {
+    background: #f59e0b;
+}
+
+.status-dot-disconnected {
+    background: #ef4444;
+}
+
+.toggle-button {
+    border: 0;
+    border-radius: 999px;
+    padding: 0.8rem 1.1rem;
+    background: linear-gradient(135deg, #f97316, #fb7185);
+    color: #fff8f2;
+    cursor: pointer;
+    transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.toggle-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 18px 32px rgba(249, 115, 22, 0.25);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.stat-card {
+    padding: 1rem 1.1rem;
+    border-radius: 22px;
+}
+
+.stat-label {
+    display: block;
+    color: #8ea7bb;
+    font-size: 0.84rem;
+}
+
+.stat-value {
+    display: block;
+    margin-top: 0.45rem;
+    font-size: 1.2rem;
+}
+
+.panel {
+    padding: 1.35rem;
+    border-radius: 24px;
+    margin-top: 1.25rem;
+}
+
+.panel-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.chart-shell {
+    min-height: 420px;
+}
+
+.table-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.market-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.market-table th,
+.market-table td {
+    padding: 0.8rem 0.6rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    text-align: left;
+}
+
+.market-table th {
+    color: #8ea7bb;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+}
+
+.log-list {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.log-entry {
+    margin: 0;
+    padding: 0.95rem 1rem;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.04);
+    color: #dbe7f2;
+}
+
+.log-user {
+    color: #ffd4a8;
+    font-weight: 600;
+}
+
+.error-banner {
+    padding: 0.9rem 1rem;
+    border-radius: 16px;
+    background: rgba(239, 68, 68, 0.15);
+    color: #fecaca;
+}
+
+@media (max-width: 920px) {
+    .hero-card,
+    .panel-header {
+        flex-direction: column;
+    }
+
+    .status-panel {
+        align-items: flex-start;
+    }
+
+    .table-grid {
+        grid-template-columns: 1fr;
+    }
+}

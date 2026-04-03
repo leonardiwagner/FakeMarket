@@ -6,6 +6,10 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
+    "./db/*": {
+      "types": "./dist/db/*.d.ts",
+      "default": "./dist/db/*.js"
+    },
     "./models/*": {
       "types": "./dist/models/*.d.ts",
       "default": "./dist/models/*.js"
