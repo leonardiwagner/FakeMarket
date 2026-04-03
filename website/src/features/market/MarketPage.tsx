@@ -14,7 +14,7 @@ import { Line } from 'react-chartjs-2';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { formatCurrency, formatDateTime } from '../../lib/format';
 import { API_BASE_URL, fetchMarketSnapshot } from './marketSlice';
-import type { MarketOrderEntry, MarketTradePoint } from './marketTypes';
+import type { MarketOrderEntry, MarketTradePoint, MarketUserOrder } from './marketTypes';
 import { useMarketStream } from './useMarketStream';
 
 ChartJS.register(
@@ -159,12 +159,16 @@ export function MarketPage() {
     const { snapshot, status, error, connectionStatus } = useAppSelector((state) => state.market);
     const adminUser = snapshot?.adminUser;
     const [isTradePanelOpen, setIsTradePanelOpen] = useState(false);
+    const [isOrdersPanelOpen, setIsOrdersPanelOpen] = useState(false);
     const [tradeSide, setTradeSide] = useState<TradeSide>('buy');
     const [selectedTradeResourceId, setSelectedTradeResourceId] = useState('');
     const [tradeQuantity, setTradeQuantity] = useState('1');
     const [tradePrice, setTradePrice] = useState('1000');
     const [tradeSubmitStatus, setTradeSubmitStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
     const [tradeMessage, setTradeMessage] = useState('');
+    const [orderActionStatus, setOrderActionStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+    const [orderActionMessage, setOrderActionMessage] = useState('');
+    const [cancellingOrderId, setCancellingOrderId] = useState('');
 
     const chartSeries = new Map<string, { label: string; borderColor: string; backgroundColor: string; data: ChartPoint[] }>();
     const minuteBuckets = new Map<string, { resourceId: string; resourceName: string; minuteTimestamp: number; totalPrice: number; tradeCount: number }>();
@@ -234,6 +238,7 @@ export function MarketPage() {
     const latestLogEntries = (snapshot?.log ?? []).slice(0, MAX_LOG_ROWS);
     const resourceTrends = getResourceTrendById(snapshot?.trades ?? []);
     const tradeResources = snapshot?.tradeResources ?? [];
+    const userOrders = snapshot?.userOrders ?? [];
     const visibleResources = (snapshot?.resources ?? []).filter((resource) => resource.resourceName !== 'usd');
     const selectedTradeResource = tradeResources.find((resource) => resource.resourceId === selectedTradeResourceId) ?? tradeResources[0];
     const quantityValue = Math.max(0, Number(tradeQuantity) || 0);
@@ -277,11 +282,61 @@ export function MarketPage() {
 
             setTradeSubmitStatus('success');
             setTradeMessage(`${tradeSide === 'buy' ? 'Buy' : 'Sell'} order placed for ${selectedTradeResource.resourceName}.`);
+            setIsTradePanelOpen(false);
             void dispatch(fetchMarketSnapshot());
         } catch (submitError) {
             setTradeSubmitStatus('error');
             setTradeMessage(submitError instanceof Error ? submitError.message : 'Unable to place the order.');
         }
+    }
+
+    async function handleCancelOrder(orderId: string) {
+        setOrderActionStatus('submitting');
+        setOrderActionMessage('');
+        setCancellingOrderId(orderId);
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/orders/${orderId}/cancel`, {
+                method: 'POST',
+            });
+            const payload = await response.json() as { message?: string };
+
+            if (!response.ok) {
+                throw new Error(payload.message ?? 'Unable to cancel the order.');
+            }
+
+            setOrderActionStatus('success');
+            setOrderActionMessage('Order cancelled.');
+            setIsOrdersPanelOpen(false);
+            await dispatch(fetchMarketSnapshot());
+        } catch (cancelError) {
+            setOrderActionStatus('error');
+            setOrderActionMessage(cancelError instanceof Error ? cancelError.message : 'Unable to cancel the order.');
+        } finally {
+            setCancellingOrderId('');
+        }
+    }
+
+    function getOrderSummary(order: MarketUserOrder) {
+        return `${order.type.toUpperCase()} ${order.quantity} @ ${formatCurrency(order.price)}`;
+    }
+
+    function canCancelOrder(order: MarketUserOrder) {
+        return order.status === 'open' || order.status === 'partial';
+    }
+
+    function toggleOrdersPanel() {
+        setTradeMessage('');
+        setOrderActionMessage('');
+        setIsTradePanelOpen(false);
+        setIsOrdersPanelOpen((currentValue) => !currentValue);
+    }
+
+    function toggleTradePanel() {
+        setTradeMessage('');
+        setOrderActionMessage('');
+        setIsOrdersPanelOpen(false);
+        setIsTradePanelOpen((currentValue) => !currentValue);
     }
 
     return (
@@ -336,18 +391,79 @@ export function MarketPage() {
                         ) : null}
                     </article>
                 ))}
-                <article className="stat-card trade-card">
+                <article className="stat-card quick-actions-card">
                     <span className="stat-label">Quick action</span>
-                    <strong className="stat-value">Trade now</strong>
-                    <button
-                        type="button"
-                        className="trade-now-button"
-                        onClick={() => setIsTradePanelOpen((currentValue) => !currentValue)}
-                    >
-                        {isTradePanelOpen ? 'Hide order form' : 'Open order form'}
-                    </button>
+                    <strong className="stat-value">Manage your trading</strong>
+                    <div className="quick-actions-buttons">
+                        <button
+                            type="button"
+                            className="trade-now-button quick-action-button"
+                            onClick={toggleOrdersPanel}
+                        >
+                            {isOrdersPanelOpen ? 'Hide my orders' : `My orders (${userOrders.length})`}
+                        </button>
+                        <button
+                            type="button"
+                            className="trade-now-button quick-action-button"
+                            onClick={toggleTradePanel}
+                        >
+                            {isTradePanelOpen ? 'Hide trade form' : 'Trade now'}
+                        </button>
+                    </div>
                 </article>
             </section>
+
+            {tradeMessage ? (
+                <p className={tradeSubmitStatus === 'error' ? 'error-banner action-feedback-banner' : 'trade-success-banner action-feedback-banner'}>
+                    {tradeMessage}
+                </p>
+            ) : null}
+
+            {orderActionMessage ? (
+                <p className={orderActionStatus === 'error' ? 'error-banner action-feedback-banner' : 'trade-success-banner action-feedback-banner'}>
+                    {orderActionMessage}
+                </p>
+            ) : null}
+
+            {isOrdersPanelOpen ? (
+                <section className="panel orders-panel">
+                    <div className="panel-header">
+                        <div>
+                            <p className="panel-kicker">Current orders</p>
+                            <h2>My orders</h2>
+                        </div>
+                    </div>
+
+                    {!userOrders.length ? (
+                        <p className="placeholder">You do not have any orders right now.</p>
+                    ) : (
+                        <div className="orders-list">
+                            {userOrders.map((order) => (
+                                <article key={order.id} className="order-card">
+                                    <div className="order-card-copy">
+                                        <span className="order-card-title">{order.resourceName}</span>
+                                        <span className="order-card-meta">{getOrderSummary(order)}</span>
+                                        <span className={`order-status-badge order-status-${order.status}`}>{order.status}</span>
+                                        <span className="order-card-meta">{formatDateTime(order.created)}</span>
+                                    </div>
+                                    {canCancelOrder(order) ? (
+                                        <button
+                                            type="button"
+                                            className="cancel-order-button"
+                                            onClick={() => void handleCancelOrder(order.id)}
+                                            disabled={orderActionStatus === 'submitting' && cancellingOrderId === order.id}
+                                        >
+                                            {orderActionStatus === 'submitting' && cancellingOrderId === order.id ? 'Cancelling...' : 'Cancel'}
+                                        </button>
+                                    ) : (
+                                        <span className="order-action-placeholder">Unavailable</span>
+                                    )}
+                                </article>
+                            ))}
+                        </div>
+                    )}
+                </section>
+            ) : null}
 
             {isTradePanelOpen ? (
                 <section className="panel trade-panel">

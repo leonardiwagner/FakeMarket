@@ -45,10 +45,22 @@ export type MarketTradeResource = {
     adminAvailableQuantity: number;
 };
 
+export type MarketUserOrder = {
+    id: string;
+    resourceId: string;
+    resourceName: string;
+    type: string;
+    status: string;
+    quantity: number;
+    price: number;
+    created: string;
+};
+
 export type MarketSnapshot = {
     generatedAt: string;
     adminUser: MarketUserSummary;
     tradeResources: MarketTradeResource[];
+    userOrders: MarketUserOrder[];
     resources: MarketResourceSummary[];
     trades: MarketTradePoint[];
     sellOrders: MarketOrderEntry[];

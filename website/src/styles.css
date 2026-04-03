@@ -214,14 +214,22 @@ table {
     line-height: 1;
 }
 
-.trade-card {
+.quick-actions-card {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    min-height: 100%;
+}
+
+.quick-actions-buttons {
+    display: grid;
+    gap: 0.85rem;
+    margin-top: 1rem;
 }
 
 .trade-now-button,
-.trade-submit-button {
+.trade-submit-button,
+.cancel-order-button {
     border: 0;
     border-radius: 14px;
     padding: 0.85rem 1rem;
@@ -233,18 +241,98 @@ table {
 }
 
 .trade-now-button:hover,
-.trade-submit-button:hover {
+.trade-submit-button:hover,
+.cancel-order-button:hover {
     transform: translateY(-1px);
     box-shadow: 0 18px 32px rgba(249, 115, 22, 0.25);
 }
 
-.trade-submit-button:disabled {
+.trade-submit-button:disabled,
+.cancel-order-button:disabled {
     opacity: 0.7;
     cursor: wait;
 }
 
+.quick-action-button {
+    width: 100%;
+    min-height: 60px;
+    font-size: 1rem;
+}
+
+.orders-panel,
 .trade-panel {
     margin-top: 0;
+}
+
+.orders-list {
+    display: grid;
+    gap: 0.65rem;
+}
+
+.order-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 0.95rem;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.order-card-copy {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    min-width: 0;
+    flex-wrap: nowrap;
+}
+
+.order-card-title {
+    font-size: 0.96rem;
+    font-weight: 700;
+    color: #f4f8fb;
+    min-width: 70px;
+}
+
+.order-card-meta {
+    color: #b8c8d6;
+    font-size: 0.88rem;
+    white-space: nowrap;
+}
+
+.order-status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+}
+
+.order-status-open,
+.order-status-partial {
+    background: rgba(52, 211, 153, 0.12);
+    color: #86efac;
+}
+
+.order-status-cancelled {
+    background: rgba(248, 113, 113, 0.12);
+    color: #fca5a5;
+}
+
+.cancel-order-button {
+    background: linear-gradient(135deg, #dc2626, #f97316);
+    min-width: 120px;
+    padding: 0.65rem 0.9rem;
+}
+
+.order-action-placeholder {
+    min-width: 120px;
+    text-align: center;
+    color: #8ea7bb;
+    font-size: 0.85rem;
 }
 
 .trade-form {
@@ -295,6 +383,10 @@ table {
     border-radius: 16px;
     background: rgba(16, 185, 129, 0.15);
     color: #bbf7d0;
+}
+
+.action-feedback-banner {
+    margin-top: 1rem;
 }
 
 .panel {
@@ -379,6 +471,15 @@ table {
 
     .user-balance-card {
         flex: 1 1 180px;
+    }
+
+    .order-card {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .order-card-copy {
+        flex-wrap: wrap;
     }
 
     .trade-form,

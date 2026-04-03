@@ -99,6 +99,15 @@ app.post('/orders/sell', async (request, response, next) => {
     }
 });
 
+app.post('/orders/:orderId/cancel', async (request, response, next) => {
+    try {
+        const cancelledOrder = await OrderService.cancelOrder(request.params.orderId);
+        response.status(200).json(cancelledOrder);
+    } catch (error) {
+        next(error);
+    }
+});
+
 websocketServer.on('connection', async (socket, request) => {
     try {
         const url = new URL(request.url ?? STREAM_PATH, `http://${request.headers.host ?? 'localhost'}`);

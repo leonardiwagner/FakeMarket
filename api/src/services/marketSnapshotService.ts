@@ -9,6 +9,7 @@ import type {
     MarketSnapshot,
     MarketTradeResource,
     MarketTradePoint,
+    MarketUserOrder,
     MarketUserSummary,
 } from '../types/market';
 
@@ -24,8 +25,9 @@ type AdminUserRecord = MarketUserSummary & {
 
 export async function getMarketSnapshot(resourceId?: string): Promise<MarketSnapshot> {
     const adminUser = await getAdminUserSummary();
-    const [tradeResources, resourceRows, recentTrades, sellOrders, buyOrders, log] = await Promise.all([
+    const [tradeResources, userOrders, resourceRows, recentTrades, sellOrders, buyOrders, log] = await Promise.all([
         getTradeResources(adminUser.id),
+        getUserOrders(adminUser.id),
         getResources(resourceId),
         getRecentTrades(resourceId, DEFAULT_TRADE_LIMIT),
         getLatestOrders(Constants.OrderType.SELL, resourceId, DEFAULT_ORDER_LIMIT),
@@ -55,6 +57,7 @@ export async function getMarketSnapshot(resourceId?: string): Promise<MarketSnap
             reservedMoney: adminUser.reservedMoney,
         },
         tradeResources,
+        userOrders,
         resources: resourcesWithSummary,
         trades: [...recentTrades].reverse(),
         sellOrders,
@@ -112,6 +115,33 @@ async function getTradeResources(adminUserId: string): Promise<MarketTradeResour
         .where(inArray(resources.name, [...TRADEABLE_RESOURCE_NAMES]))
         .groupBy(resources.id, resources.name)
         .orderBy(asc(resources.name));
+}
+
+async function getUserOrders(adminUserId: string): Promise<MarketUserOrder[]> {
+    return await db
+        .select({
+            id: orders.id,
+            resourceId: orders.resourceId,
+            resourceName: resources.name,
+            type: orders.type,
+            status: orders.status,
+            quantity: orders.quantity,
+            price: orders.price,
+            created: orders.created,
+        })
+        .from(orders)
+        .innerJoin(resources, eq(orders.resourceId, resources.id))
+        .where(
+            and(
+                eq(orders.userId, adminUserId),
+                or(
+                    eq(orders.status, Constants.OrderStatus.OPEN),
+                    eq(orders.status, Constants.OrderStatus.PARTIAL),
+                    eq(orders.status, Constants.OrderStatus.CANCELLED),
+                ),
+            ),
+        )
+        .orderBy(desc(orders.created));
 }
 
 async function getRecentTrades(resourceId: string | undefined, limit: number): Promise<MarketTradePoint[]> {
