@@ -1,3 +1,4 @@
+import { useEffect, useState, type FormEvent } from 'react';
 import 'chartjs-adapter-date-fns';
 import {
     Chart as ChartJS,
@@ -10,8 +11,9 @@ import {
     Tooltip,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
-import { useAppSelector } from '../../app/hooks';
+import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { formatCurrency, formatDateTime } from '../../lib/format';
+import { API_BASE_URL, fetchMarketSnapshot } from './marketSlice';
 import type { MarketOrderEntry, MarketTradePoint } from './marketTypes';
 import { useMarketStream } from './useMarketStream';
 
@@ -51,6 +53,8 @@ type ResourceTrend = {
     direction: 'up' | 'down' | 'flat';
     percentChange: number;
 };
+
+type TradeSide = 'buy' | 'sell';
 
 function toMinuteTimestamp(value: string) {
     const date = new Date(value);
@@ -151,8 +155,16 @@ function formatPercentage(value: number) {
 export function MarketPage() {
     useMarketStream();
 
+    const dispatch = useAppDispatch();
     const { snapshot, status, error, connectionStatus } = useAppSelector((state) => state.market);
     const adminUser = snapshot?.adminUser;
+    const [isTradePanelOpen, setIsTradePanelOpen] = useState(false);
+    const [tradeSide, setTradeSide] = useState<TradeSide>('buy');
+    const [selectedTradeResourceId, setSelectedTradeResourceId] = useState('');
+    const [tradeQuantity, setTradeQuantity] = useState('1');
+    const [tradePrice, setTradePrice] = useState('1000');
+    const [tradeSubmitStatus, setTradeSubmitStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+    const [tradeMessage, setTradeMessage] = useState('');
 
     const chartSeries = new Map<string, { label: string; borderColor: string; backgroundColor: string; data: ChartPoint[] }>();
     const minuteBuckets = new Map<string, { resourceId: string; resourceName: string; minuteTimestamp: number; totalPrice: number; tradeCount: number }>();
@@ -221,6 +233,56 @@ export function MarketPage() {
     const topBuyOrders = groupOrdersByPrice(snapshot?.buyOrders ?? [], 'buy');
     const latestLogEntries = (snapshot?.log ?? []).slice(0, MAX_LOG_ROWS);
     const resourceTrends = getResourceTrendById(snapshot?.trades ?? []);
+    const tradeResources = snapshot?.tradeResources ?? [];
+    const visibleResources = (snapshot?.resources ?? []).filter((resource) => resource.resourceName !== 'usd');
+    const selectedTradeResource = tradeResources.find((resource) => resource.resourceId === selectedTradeResourceId) ?? tradeResources[0];
+    const quantityValue = Math.max(0, Number(tradeQuantity) || 0);
+    const priceValue = Math.max(0, Number(tradePrice) || 0);
+    const computedTotalPrice = quantityValue * priceValue;
+    const computedRemainingResources = Math.max(0, (selectedTradeResource?.adminAvailableQuantity ?? 0) - quantityValue);
+
+    useEffect(() => {
+        if (!selectedTradeResourceId && tradeResources.length > 0) {
+            setSelectedTradeResourceId(tradeResources[0].resourceId);
+        }
+    }, [selectedTradeResourceId, tradeResources]);
+
+    async function handleTradeSubmit(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+
+        if (!selectedTradeResource) {
+            return;
+        }
+
+        setTradeSubmitStatus('submitting');
+        setTradeMessage('');
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/orders/${tradeSide}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    resourceId: selectedTradeResource.resourceId,
+                    quantity: quantityValue,
+                    price: priceValue,
+                }),
+            });
+            const payload = await response.json() as { message?: string };
+
+            if (!response.ok) {
+                throw new Error(payload.message ?? 'Unable to place the order.');
+            }
+
+            setTradeSubmitStatus('success');
+            setTradeMessage(`${tradeSide === 'buy' ? 'Buy' : 'Sell'} order placed for ${selectedTradeResource.resourceName}.`);
+            void dispatch(fetchMarketSnapshot());
+        } catch (submitError) {
+            setTradeSubmitStatus('error');
+            setTradeMessage(submitError instanceof Error ? submitError.message : 'Unable to place the order.');
+        }
+    }
 
     return (
         <main className="page-shell">
@@ -254,7 +316,7 @@ export function MarketPage() {
             </section>
 
             <section className="stats-grid">
-                {snapshot?.resources.map((resource) => (
+                {visibleResources.map((resource) => (
                     <article key={resource.resourceId} className="stat-card">
                         <span className="stat-label">{resource.resourceName}</span>
                         <strong className="stat-value">
@@ -274,7 +336,101 @@ export function MarketPage() {
                         ) : null}
                     </article>
                 ))}
+                <article className="stat-card trade-card">
+                    <span className="stat-label">Quick action</span>
+                    <strong className="stat-value">Trade now</strong>
+                    <button
+                        type="button"
+                        className="trade-now-button"
+                        onClick={() => setIsTradePanelOpen((currentValue) => !currentValue)}
+                    >
+                        {isTradePanelOpen ? 'Hide order form' : 'Open order form'}
+                    </button>
+                </article>
             </section>
+
+            {isTradePanelOpen ? (
+                <section className="panel trade-panel">
+                    <div className="panel-header">
+                        <div>
+                            <p className="panel-kicker">{tradeSide === 'buy' ? 'Buy order' : 'Sell order'}</p>
+                            <h2>Trade gold or oil</h2>
+                        </div>
+                    </div>
+
+                    <form className="trade-form" onSubmit={handleTradeSubmit}>
+                        <label className="trade-field">
+                            <span className="trade-field-label">Order type</span>
+                            <select
+                                value={tradeSide}
+                                onChange={(event) => setTradeSide(event.target.value as TradeSide)}
+                            >
+                                <option value="buy">Buy</option>
+                                <option value="sell">Sell</option>
+                            </select>
+                        </label>
+
+                        <label className="trade-field">
+                            <span className="trade-field-label">Resource</span>
+                            <select
+                                value={selectedTradeResource?.resourceId ?? ''}
+                                onChange={(event) => setSelectedTradeResourceId(event.target.value)}
+                            >
+                                {tradeResources.map((resource) => (
+                                    <option key={resource.resourceId} value={resource.resourceId}>
+                                        {resource.resourceName}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+
+                        <label className="trade-field">
+                            <span className="trade-field-label">Quantity</span>
+                            <input
+                                type="number"
+                                min="1"
+                                step="1"
+                                value={tradeQuantity}
+                                onChange={(event) => setTradeQuantity(event.target.value)}
+                            />
+                        </label>
+
+                        <label className="trade-field">
+                            <span className="trade-field-label">Price</span>
+                            <input
+                                type="number"
+                                min="1"
+                                step="1"
+                                value={tradePrice}
+                                onChange={(event) => setTradePrice(event.target.value)}
+                            />
+                        </label>
+
+                        <label className="trade-field trade-field-readonly">
+                            <span className="trade-field-label">{tradeSide === 'buy' ? 'Total price' : 'Remaining resources'}</span>
+                            <input
+                                type="text"
+                                readOnly
+                                value={tradeSide === 'buy'
+                                    ? formatCurrency(computedTotalPrice)
+                                    : String(computedRemainingResources)}
+                            />
+                        </label>
+
+                        <button type="submit" className="trade-submit-button" disabled={tradeSubmitStatus === 'submitting'}>
+                            {tradeSubmitStatus === 'submitting'
+                                ? 'Placing order...'
+                                : `Place ${tradeSide} order`}
+                        </button>
+                    </form>
+
+                    {tradeMessage ? (
+                        <p className={tradeSubmitStatus === 'error' ? 'error-banner' : 'trade-success-banner'}>
+                            {tradeMessage}
+                        </p>
+                    ) : null}
+                </section>
+            ) : null}
 
             <section className="panel">
                 <div className="panel-header">

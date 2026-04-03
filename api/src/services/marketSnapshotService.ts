@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, or } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, or, sql } from 'drizzle-orm';
 import { db } from 'fakemarket-common/db/client';
 import { holdings, orders, resources, trades, users } from 'fakemarket-common/db/schema';
 import * as Constants from 'fakemarket-common/models/constants';
@@ -7,6 +7,7 @@ import type {
     MarketOrderEntry,
     MarketResourceSummary,
     MarketSnapshot,
+    MarketTradeResource,
     MarketTradePoint,
     MarketUserSummary,
 } from '../types/market';
@@ -15,10 +16,16 @@ const DEFAULT_TRADE_LIMIT = 200;
 const DEFAULT_ORDER_LIMIT = 200;
 const DEFAULT_LOG_LIMIT = 40;
 const ADMIN_EMAIL = 'admin@fakemarket.com';
+const TRADEABLE_RESOURCE_NAMES = ['gold', 'oil'] as const;
+
+type AdminUserRecord = MarketUserSummary & {
+    id: string;
+};
 
 export async function getMarketSnapshot(resourceId?: string): Promise<MarketSnapshot> {
-    const [adminUser, resourceRows, recentTrades, sellOrders, buyOrders, log] = await Promise.all([
-        getAdminUserSummary(),
+    const adminUser = await getAdminUserSummary();
+    const [tradeResources, resourceRows, recentTrades, sellOrders, buyOrders, log] = await Promise.all([
+        getTradeResources(adminUser.id),
         getResources(resourceId),
         getRecentTrades(resourceId, DEFAULT_TRADE_LIMIT),
         getLatestOrders(Constants.OrderType.SELL, resourceId, DEFAULT_ORDER_LIMIT),
@@ -42,7 +49,12 @@ export async function getMarketSnapshot(resourceId?: string): Promise<MarketSnap
 
     return {
         generatedAt: new Date().toISOString(),
-        adminUser,
+        adminUser: {
+            email: adminUser.email,
+            money: adminUser.money,
+            reservedMoney: adminUser.reservedMoney,
+        },
+        tradeResources,
         resources: resourcesWithSummary,
         trades: [...recentTrades].reverse(),
         sellOrders,
@@ -62,9 +74,10 @@ async function getResources(resourceId?: string): Promise<Array<{ resourceId: st
         .orderBy(asc(resources.name));
 }
 
-async function getAdminUserSummary(): Promise<MarketUserSummary> {
+async function getAdminUserSummary(): Promise<AdminUserRecord> {
     const [adminHolding] = await db
         .select({
+            id: users.id,
             email: users.email,
             money: holdings.quantity,
             reservedMoney: holdings.quantityReserved,
@@ -82,6 +95,23 @@ async function getAdminUserSummary(): Promise<MarketUserSummary> {
     }
 
     return adminHolding;
+}
+
+async function getTradeResources(adminUserId: string): Promise<MarketTradeResource[]> {
+    return await db
+        .select({
+            resourceId: resources.id,
+            resourceName: resources.name,
+            adminAvailableQuantity: sql<number>`coalesce(max(case when ${holdings.userId} = ${adminUserId} then ${holdings.quantity} else 0 end), 0)`,
+        })
+        .from(resources)
+        .leftJoin(holdings, and(
+            eq(holdings.resourceId, resources.id),
+            eq(holdings.userId, adminUserId),
+        ))
+        .where(inArray(resources.name, [...TRADEABLE_RESOURCE_NAMES]))
+        .groupBy(resources.id, resources.name)
+        .orderBy(asc(resources.name));
 }
 
 async function getRecentTrades(resourceId: string | undefined, limit: number): Promise<MarketTradePoint[]> {

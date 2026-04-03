@@ -27,6 +27,7 @@ body {
 
 button,
 input,
+select,
 table {
     font: inherit;
 }
@@ -213,6 +214,89 @@ table {
     line-height: 1;
 }
 
+.trade-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.trade-now-button,
+.trade-submit-button {
+    border: 0;
+    border-radius: 14px;
+    padding: 0.85rem 1rem;
+    background: linear-gradient(135deg, #f97316, #fb7185);
+    color: #fff8f2;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+}
+
+.trade-now-button:hover,
+.trade-submit-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 18px 32px rgba(249, 115, 22, 0.25);
+}
+
+.trade-submit-button:disabled {
+    opacity: 0.7;
+    cursor: wait;
+}
+
+.trade-panel {
+    margin-top: 0;
+}
+
+.trade-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    align-items: start;
+}
+
+.trade-field {
+    display: grid;
+    gap: 0.45rem;
+}
+
+.trade-field-label {
+    color: #8ea7bb;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+}
+
+.trade-field input,
+.trade-field select {
+    width: 100%;
+    padding: 0.85rem 0.95rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.04);
+    color: #f4f8fb;
+}
+
+.trade-field-readonly input {
+    color: #ffd4a8;
+    font-weight: 700;
+}
+
+.trade-field-readonly {
+    grid-column: span 2;
+}
+
+.trade-submit-button {
+    align-self: end;
+    min-height: 52px;
+}
+
+.trade-success-banner {
+    padding: 0.9rem 1rem;
+    border-radius: 16px;
+    background: rgba(16, 185, 129, 0.15);
+    color: #bbf7d0;
+}
+
 .panel {
     padding: 1.35rem;
     border-radius: 24px;
@@ -297,7 +381,12 @@ table {
         flex: 1 1 180px;
     }
 
+    .trade-form,
     .table-grid {
         grid-template-columns: 1fr;
+    }
+
+    .trade-field-readonly {
+        grid-column: auto;
     }
 }
