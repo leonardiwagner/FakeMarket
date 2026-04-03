@@ -59,9 +59,9 @@ async function generateOrdersFromUserHoldings(robotUser: Models.User, holding: M
 }
 
 export async function generatedOrdersForUser(user: Models.User) : Promise<Models.Order[]> {
-    // only oil for now
+    
     const holdings = (await HoldingsRepository.getUserHoldings(user.id))
-        .filter(holding => holding.resourceId === "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+        .filter(holding => holding.resourceId !== Constants.RESOURCE_ID_USD);
 
     return await Promise.all(holdings.map(holding => generateOrdersFromUserHoldings(user, holding)));
 }
