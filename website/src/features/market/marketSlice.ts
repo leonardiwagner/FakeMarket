@@ -6,7 +6,6 @@ type MarketState = {
     status: 'idle' | 'loading' | 'succeeded' | 'failed';
     connectionStatus: 'disconnected' | 'connecting' | 'connected';
     error: string | null;
-    isLive: boolean;
 };
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3001';
@@ -16,7 +15,6 @@ const initialState: MarketState = {
     status: 'idle',
     connectionStatus: 'disconnected',
     error: null,
-    isLive: true,
 };
 
 export const fetchMarketSnapshot = createAsyncThunk(
@@ -44,13 +42,6 @@ const marketSlice = createSlice({
         connectionStatusChanged(state, action: PayloadAction<MarketState['connectionStatus']>) {
             state.connectionStatus = action.payload;
         },
-        liveToggled(state) {
-            state.isLive = !state.isLive;
-
-            if (!state.isLive) {
-                state.connectionStatus = 'disconnected';
-            }
-        },
         websocketErrorReceived(state, action: PayloadAction<string>) {
             state.error = action.payload;
         },
@@ -75,7 +66,6 @@ const marketSlice = createSlice({
 
 export const {
     connectionStatusChanged,
-    liveToggled,
     snapshotReceived,
     websocketErrorReceived,
 } = marketSlice.actions;

@@ -9,11 +9,10 @@ import {
     Title,
     Tooltip,
 } from 'chart.js';
-import { Button } from 'react-aria-components';
 import { Line } from 'react-chartjs-2';
-import { useAppDispatch, useAppSelector } from '../../app/hooks';
+import { useAppSelector } from '../../app/hooks';
 import { formatCurrency, formatDateTime } from '../../lib/format';
-import { liveToggled } from './marketSlice';
+import type { MarketOrderEntry } from './marketTypes';
 import { useMarketStream } from './useMarketStream';
 
 ChartJS.register(
@@ -37,30 +36,96 @@ const CHART_COLORS = [
     '#be123c',
 ];
 
+const MAX_BOOK_ROWS = 5;
+const MAX_LOG_ROWS = 5;
+
+function toMinuteTimestamp(value: string) {
+    const date = new Date(value);
+    date.setSeconds(0, 0);
+    return date.getTime();
+}
+
+function groupOrdersByPrice(orders: MarketOrderEntry[], side: 'sell' | 'buy') {
+    const groupedOrders = new Map<string, MarketOrderEntry>();
+
+    for (const order of orders) {
+        const key = `${order.resourceId}:${order.price}`;
+        const existingOrder = groupedOrders.get(key);
+
+        if (!existingOrder) {
+            groupedOrders.set(key, { ...order });
+            continue;
+        }
+
+        existingOrder.quantity += order.quantity;
+
+        if (new Date(order.created).getTime() > new Date(existingOrder.created).getTime()) {
+            existingOrder.created = order.created;
+        }
+    }
+
+    const groupedList = Array.from(groupedOrders.values());
+
+    groupedList.sort((left, right) => {
+        if (left.price !== right.price) {
+            return side === 'sell' ? left.price - right.price : right.price - left.price;
+        }
+
+        return new Date(right.created).getTime() - new Date(left.created).getTime();
+    });
+
+    return groupedList.slice(0, MAX_BOOK_ROWS);
+}
+
 export function MarketPage() {
     useMarketStream();
 
-    const dispatch = useAppDispatch();
-    const { snapshot, status, error, connectionStatus, isLive } = useAppSelector((state) => state.market);
+    const { snapshot, status, error, connectionStatus } = useAppSelector((state) => state.market);
 
     const chartSeries = new Map<string, { label: string; borderColor: string; backgroundColor: string; data: Array<{ x: number; y: number }> }>();
+    const minuteBuckets = new Map<string, { resourceId: string; resourceName: string; minuteTimestamp: number; totalPrice: number; tradeCount: number }>();
 
     snapshot?.trades.forEach((trade) => {
-        if (!chartSeries.has(trade.resourceId)) {
-            const color = CHART_COLORS[chartSeries.size % CHART_COLORS.length];
-            chartSeries.set(trade.resourceId, {
-                label: trade.resourceName,
-                borderColor: color,
-                backgroundColor: `${color}33`,
-                data: [],
+        const minuteTimestamp = toMinuteTimestamp(trade.created);
+        const bucketKey = `${trade.resourceId}:${minuteTimestamp}`;
+        const existingBucket = minuteBuckets.get(bucketKey);
+
+        if (existingBucket) {
+            existingBucket.totalPrice += trade.price;
+            existingBucket.tradeCount += 1;
+        } else {
+            minuteBuckets.set(bucketKey, {
+                resourceId: trade.resourceId,
+                resourceName: trade.resourceName,
+                minuteTimestamp,
+                totalPrice: trade.price,
+                tradeCount: 1,
             });
         }
-
-        chartSeries.get(trade.resourceId)!.data.push({
-            x: new Date(trade.created).getTime(),
-            y: trade.price,
-        });
     });
+
+    Array.from(minuteBuckets.values())
+        .sort((left, right) => left.minuteTimestamp - right.minuteTimestamp)
+        .forEach((bucket) => {
+            if (!chartSeries.has(bucket.resourceId)) {
+                const color = CHART_COLORS[chartSeries.size % CHART_COLORS.length];
+                chartSeries.set(bucket.resourceId, {
+                    label: bucket.resourceName,
+                    borderColor: color,
+                    backgroundColor: `${color}33`,
+                    data: [],
+                });
+            }
+
+            chartSeries.get(bucket.resourceId)!.data.push({
+                x: bucket.minuteTimestamp,
+                y: bucket.totalPrice / bucket.tradeCount,
+            });
+        });
+
+    const topSellOrders = groupOrdersByPrice(snapshot?.sellOrders ?? [], 'sell');
+    const topBuyOrders = groupOrdersByPrice(snapshot?.buyOrders ?? [], 'buy');
+    const latestLogEntries = (snapshot?.log ?? []).slice(0, MAX_LOG_ROWS);
 
     return (
         <main className="page-shell">
@@ -78,9 +143,6 @@ export function MarketPage() {
                         <span className={`status-dot status-dot-${connectionStatus}`} />
                         <span>{connectionStatus}</span>
                     </div>
-                    <Button className="toggle-button" onPress={() => dispatch(liveToggled())}>
-                        {isLive ? 'Pause live updates' : 'Resume live updates'}
-                    </Button>
                 </div>
             </section>
 
@@ -174,11 +236,11 @@ export function MarketPage() {
                                 <th>Resource</th>
                                 <th>Quantity</th>
                                 <th>Price</th>
-                                <th>Created</th>
+                                <th>Latest</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {snapshot?.sellOrders.map((order) => (
+                            {topSellOrders.map((order) => (
                                 <tr key={order.id}>
                                     <td>{order.resourceName}</td>
                                     <td>{order.quantity}</td>
@@ -204,11 +266,11 @@ export function MarketPage() {
                                 <th>Resource</th>
                                 <th>Quantity</th>
                                 <th>Price</th>
-                                <th>Created</th>
+                                <th>Latest</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {snapshot?.buyOrders.map((order) => (
+                            {topBuyOrders.map((order) => (
                                 <tr key={order.id}>
                                     <td>{order.resourceName}</td>
                                     <td>{order.quantity}</td>
@@ -230,7 +292,7 @@ export function MarketPage() {
                 </div>
 
                 <div className="log-list">
-                    {snapshot?.log.map((entry) => (
+                    {latestLogEntries.map((entry) => (
                         <p key={entry.id} className="log-entry">
                             <span className="log-user">{entry.buyerLabel}</span> bought <span>{entry.quantity}</span> item(s) of{' '}
                             <span>{entry.resourceName}</span> for <span>{formatCurrency(entry.price)}</span> at{' '}

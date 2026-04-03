@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useAppDispatch, useAppSelector } from '../../app/hooks';
+import { useAppDispatch } from '../../app/hooks';
 import {
     connectionStatusChanged,
     fetchMarketSnapshot,
@@ -12,17 +12,12 @@ const WS_BASE_URL = import.meta.env.VITE_WS_BASE_URL ?? 'ws://localhost:3001';
 
 export function useMarketStream() {
     const dispatch = useAppDispatch();
-    const isLive = useAppSelector((state) => state.market.isLive);
 
     useEffect(() => {
         void dispatch(fetchMarketSnapshot());
     }, [dispatch]);
 
     useEffect(() => {
-        if (!isLive) {
-            return;
-        }
-
         let isCancelled = false;
         let reconnectTimer: number | undefined;
         let socket: WebSocket | undefined;
@@ -71,5 +66,5 @@ export function useMarketStream() {
             window.clearTimeout(reconnectTimer);
             socket?.close();
         };
-    }, [dispatch, isLive]);
+    }, [dispatch]);
 }

@@ -11,7 +11,7 @@ import type {
 } from '../types/market';
 
 const DEFAULT_TRADE_LIMIT = 200;
-const DEFAULT_ORDER_LIMIT = 25;
+const DEFAULT_ORDER_LIMIT = 200;
 const DEFAULT_LOG_LIMIT = 40;
 
 export async function getMarketSnapshot(resourceId?: string): Promise<MarketSnapshot> {
@@ -80,7 +80,7 @@ async function getLatestOrders(
     resourceId: string | undefined,
     limit: number,
 ): Promise<MarketOrderEntry[]> {
-    return await db
+    const query = db
         .select({
             id: orders.id,
             resourceId: orders.resourceId,
@@ -100,8 +100,16 @@ async function getLatestOrders(
                     eq(orders.status, Constants.OrderStatus.PARTIAL),
                 ),
             ),
-        )
-        .orderBy(desc(orders.created))
+        );
+
+    if (orderType === Constants.OrderType.SELL) {
+        return await query
+            .orderBy(asc(orders.price), desc(orders.created))
+            .limit(limit);
+    }
+
+    return await query
+        .orderBy(desc(orders.price), desc(orders.created))
         .limit(limit);
 }
 
