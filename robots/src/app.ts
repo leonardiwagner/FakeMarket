@@ -15,7 +15,7 @@ async function generateOrdersForRobots() {
 
           console.log(`Cancelling old orders for user ${user.email}...`);
 
-          const cancelledOrders = await cancelOldOrdersFromUser(user.id, 60);
+          const cancelledOrders = await cancelOldOrdersFromUser(user.id, 10);
 
           console.log(`Cancelled ${cancelledOrders.length} old orders for user ${user.email}.`);
 
